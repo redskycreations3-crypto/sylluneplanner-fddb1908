@@ -14,7 +14,259 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      chapters: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          position: number
+          priority: string
+          revision: string
+          status: string
+          subject_id: string
+          target_date: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          position?: number
+          priority?: string
+          revision?: string
+          status?: string
+          subject_id: string
+          target_date?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          position?: number
+          priority?: string
+          revision?: string
+          status?: string
+          subject_id?: string
+          target_date?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chapters_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_emoji: string
+          break_minutes: number
+          created_at: string
+          daily_goal_minutes: number
+          default_countdown_minutes: number
+          default_timer_mode: string
+          display_name: string
+          id: string
+          notify_daily_goal: boolean
+          notify_revision: boolean
+          notify_streak: boolean
+          notify_timetable: boolean
+          seeded: boolean
+          streak_min_minutes: number
+          theme: string
+          updated_at: string
+          weekly_goal_minutes: number
+        }
+        Insert: {
+          avatar_emoji?: string
+          break_minutes?: number
+          created_at?: string
+          daily_goal_minutes?: number
+          default_countdown_minutes?: number
+          default_timer_mode?: string
+          display_name?: string
+          id: string
+          notify_daily_goal?: boolean
+          notify_revision?: boolean
+          notify_streak?: boolean
+          notify_timetable?: boolean
+          seeded?: boolean
+          streak_min_minutes?: number
+          theme?: string
+          updated_at?: string
+          weekly_goal_minutes?: number
+        }
+        Update: {
+          avatar_emoji?: string
+          break_minutes?: number
+          created_at?: string
+          daily_goal_minutes?: number
+          default_countdown_minutes?: number
+          default_timer_mode?: string
+          display_name?: string
+          id?: string
+          notify_daily_goal?: boolean
+          notify_revision?: boolean
+          notify_streak?: boolean
+          notify_timetable?: boolean
+          seeded?: boolean
+          streak_min_minutes?: number
+          theme?: string
+          updated_at?: string
+          weekly_goal_minutes?: number
+        }
+        Relationships: []
+      }
+      study_sessions: {
+        Row: {
+          break_seconds: number
+          chapter_id: string | null
+          created_at: string
+          duration_seconds: number
+          ended_at: string
+          id: string
+          note: string | null
+          session_type: string
+          started_at: string
+          subject_id: string | null
+          user_id: string
+        }
+        Insert: {
+          break_seconds?: number
+          chapter_id?: string | null
+          created_at?: string
+          duration_seconds?: number
+          ended_at?: string
+          id?: string
+          note?: string | null
+          session_type?: string
+          started_at?: string
+          subject_id?: string | null
+          user_id: string
+        }
+        Update: {
+          break_seconds?: number
+          chapter_id?: string | null
+          created_at?: string
+          duration_seconds?: number
+          ended_at?: string
+          id?: string
+          note?: string | null
+          session_type?: string
+          started_at?: string
+          subject_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_sessions_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "chapters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "study_sessions_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subjects: {
+        Row: {
+          color: string
+          created_at: string
+          daily_goal_minutes: number
+          icon: string
+          id: string
+          name: string
+          position: number
+          user_id: string
+          weekly_goal_minutes: number
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          daily_goal_minutes?: number
+          icon?: string
+          id?: string
+          name: string
+          position?: number
+          user_id: string
+          weekly_goal_minutes?: number
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          daily_goal_minutes?: number
+          icon?: string
+          id?: string
+          name?: string
+          position?: number
+          user_id?: string
+          weekly_goal_minutes?: number
+        }
+        Relationships: []
+      }
+      timetable_entries: {
+        Row: {
+          created_at: string
+          day_of_week: number
+          end_time: string
+          id: string
+          note: string | null
+          position: number
+          reminder: boolean
+          start_time: string
+          subject_id: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week?: number
+          end_time?: string
+          id?: string
+          note?: string | null
+          position?: number
+          reminder?: boolean
+          start_time?: string
+          subject_id?: string | null
+          title?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number
+          end_time?: string
+          id?: string
+          note?: string | null
+          position?: number
+          reminder?: boolean
+          start_time?: string
+          subject_id?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "timetable_entries_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
