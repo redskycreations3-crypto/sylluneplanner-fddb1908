@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CheckCircle2, Circle, MoreVertical, Pencil, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, CheckCircle2, Circle, MoreVertical, Pencil, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,10 +26,20 @@ type Props = {
   onPatch: (patch: Partial<Chapter>) => void;
   onEdit: () => void;
   onDelete: () => void;
+  onMove: (delta: number) => void;
 };
 
 /** One syllabus chapter: status, revision, manual progress and a tap-friendly ⋮ menu. */
-export function ChapterRow({ chapter, color, expanded, onToggle, onPatch, onEdit, onDelete }: Props) {
+export function ChapterRow({
+  chapter,
+  color,
+  expanded,
+  onToggle,
+  onPatch,
+  onEdit,
+  onDelete,
+  onMove,
+}: Props) {
   const percent = chapterPercent(chapter);
   const revised = isRevised(chapter);
   const done = chapter.status === "completed";
@@ -92,6 +102,13 @@ export function ChapterRow({ chapter, color, expanded, onToggle, onPatch, onEdit
                 {revised ? "Mark as Not revised" : "Mark as Revised"}
               </DropdownMenuItem>
             ) : null}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="h-11 text-sm" onSelect={() => onMove(-1)}>
+              <ArrowUp className="mr-2 h-4 w-4" /> Move up
+            </DropdownMenuItem>
+            <DropdownMenuItem className="h-11 text-sm" onSelect={() => onMove(1)}>
+              <ArrowDown className="mr-2 h-4 w-4" /> Move down
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="h-11 text-sm text-destructive" onSelect={onDelete}>
               <Trash2 className="mr-2 h-4 w-4" /> Delete
