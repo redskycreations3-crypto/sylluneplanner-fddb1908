@@ -4,6 +4,10 @@ import { Pause, Play, Plus, RotateCcw, SkipForward, Square } from "lucide-react"
 import { toast } from "sonner";
 import { AppShell } from "@/components/study/app-shell";
 import { SubjectIcon } from "@/components/study/primitives";
+import {
+  ManualSessionDialog,
+  type ManualSessionTarget,
+} from "@/components/study/manual-session-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -61,6 +65,7 @@ function FocusPage() {
   const [newChapter, setNewChapter] = useState("");
   const [presetName, setPresetName] = useState("");
   const [completed, setCompleted] = useState<{ seconds: number } | null>(null);
+  const [manual, setManual] = useState<ManualSessionTarget>(null);
 
   const { state, elapsed, remaining, isRunning, isActive, finished, focusSeconds } = timer;
   const subject = subjects.find((s) => s.id === state.subjectId) ?? null;
@@ -240,6 +245,16 @@ function FocusPage() {
 
         {!isActive ? (
           <div className="card-soft grid gap-3 p-4">
+            <Button
+              variant="secondary"
+              className="h-12 w-full rounded-2xl text-sm font-semibold"
+              onClick={() => setManual("new")}
+            >
+              <Plus className="mr-1 h-4 w-4" /> Add Study Time
+            </Button>
+            <p className="text-[11px] text-muted-foreground">
+              Studied away from the timer? Log it here — it counts towards today's total and score.
+            </p>
             <div className="flex gap-2">
               {(["stopwatch", "countdown", "pomodoro"] as const).map((mode) => (
                 <button
