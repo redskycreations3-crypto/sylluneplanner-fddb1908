@@ -10,6 +10,7 @@ import { useChapters, useDeleteSubject, useSaveSubject, useSessions, useSubjects
 import {
   colorOf,
   formatDuration,
+  nextSubjectColor,
   sessionSeconds,
   sessionsOn,
   type Subject,
@@ -40,7 +41,7 @@ function SubjectsPage() {
   const newDraft = (): SubjectDraft => ({
     name: "",
     icon: "book",
-    color: "lavender",
+    color: nextSubjectColor(subjects),
     daily_goal_minutes: 60,
     weekly_goal_minutes: 300,
   });
