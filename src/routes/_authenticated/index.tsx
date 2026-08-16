@@ -2,12 +2,26 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Bell, Flame, Plus, Settings, Play } from "lucide-react";
 import { useState } from "react";
 import { AppShell } from "@/components/study/app-shell";
-import { EmptyState, ProgressRing, SectionTitle, SubjectIcon } from "@/components/study/primitives";
+import {
+  EmptyState,
+  ProgressBar,
+  ProgressRing,
+  SectionTitle,
+  SubjectIcon,
+} from "@/components/study/primitives";
 import {
   ManualSessionDialog,
   type ManualSessionTarget,
 } from "@/components/study/manual-session-dialog";
-import { useChapters, useProfile, useSessions, useSubjects } from "@/lib/data";
+import {
+  useChapters,
+  useDailyGoals,
+  useProfile,
+  useRecordTodayGoal,
+  useSessions,
+  useSubjects,
+} from "@/lib/data";
+import { DEFAULT_DAILY_GOAL_MINUTES, goalLabel, scoreForDate } from "@/lib/score";
 import { useTimer } from "@/lib/timer";
 import {
   chapterProgress,
@@ -45,6 +59,7 @@ function HomePage() {
   const { data: subjects = [] } = useSubjects();
   const { data: chapters = [] } = useChapters();
   const { data: sessions = [] } = useSessions();
+  const { data: dailyGoals = [] } = useDailyGoals();
   const timer = useTimer();
   const [manual, setManual] = useState<ManualSessionTarget>(null);
 
@@ -58,6 +73,10 @@ function HomePage() {
   const goalPercent = dailyGoal ? Math.min(100, Math.round((todaySeconds / dailyGoal) * 100)) : 0;
   const { current, totalDays } = streaks(sessions, profile?.streak_min_minutes ?? 20);
   const syllabus = chapterProgress(chapters);
+
+  const goalMinutes = profile?.daily_goal_minutes ?? DEFAULT_DAILY_GOAL_MINUTES;
+  useRecordTodayGoal(profile?.daily_goal_minutes);
+  const todayScore = scoreForDate(sessions, dailyGoals, today, goalMinutes);
 
   const dateLabel = today.toLocaleDateString(undefined, {
     weekday: "long",
@@ -125,6 +144,22 @@ function HomePage() {
               <p className="truncate text-[11px] text-muted-foreground">
                 of {formatDuration(dailyGoal)}
               </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="card-soft flex items-center gap-4 p-4">
+          <ProgressRing percent={todayScore.score} size={76} stroke={8}>
+            <span className="num text-sm font-bold">{todayScore.score}</span>
+          </ProgressRing>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-bold">Today&apos;s Score</p>
+            <p className="num text-lg font-bold">{todayScore.score} / 100</p>
+            <p className="num truncate text-[11px] text-muted-foreground">
+              {formatDuration(todayScore.seconds)} / {goalLabel(todayScore.goalMinutes)} studied
+            </p>
+            <div className="mt-2">
+              <ProgressBar percent={todayScore.score} />
             </div>
           </div>
         </div>
