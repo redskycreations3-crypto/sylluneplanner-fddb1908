@@ -280,6 +280,8 @@ function SettingsPage() {
           </div>
         </section>
 
+        <SyncActivity />
+
         <Button variant="ghost" className="rounded-2xl" onClick={signOut}>
           Sign out
         </Button>
@@ -318,10 +320,7 @@ function SyncActivity() {
             </Button>
           </>
         )}
-      </section>
-  );
-}
       </div>
-    </AppShell>
+      </section>
   );
 }
