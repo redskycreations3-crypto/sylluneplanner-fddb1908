@@ -123,14 +123,16 @@ function SyllabusPage() {
             size="sm"
             className="rounded-2xl"
             onClick={() =>
-              setDraft({
-                subject_id: subjects[0]?.id ?? "",
-                status: "not_started",
-                priority: "medium",
-              })
+              subjects.length === 0
+                ? setSubjectDraft(newSubjectDraft())
+                : setDraft({
+                    subject_id: subjects[0]?.id ?? "",
+                    status: "not_started",
+                    priority: "medium",
+                  })
             }
           >
-            <Plus className="mr-1 h-4 w-4" /> Chapter
+            <Plus className="mr-1 h-4 w-4" /> {subjects.length === 0 ? "Add Subject" : "Chapter"}
           </Button>
         </header>
       }
@@ -162,7 +164,16 @@ function SyllabusPage() {
       </div>
 
       {subjects.length === 0 ? (
-        <EmptyState title="No subjects yet" hint="Add a subject first." />
+        <div className="card-soft mt-6 grid place-items-center gap-3 px-6 py-10 text-center">
+          <span className="text-4xl">🗂️</span>
+          <p className="font-display text-lg font-bold">No syllabus added yet</p>
+          <p className="text-sm text-muted-foreground">
+            Add your subjects and chapters to get started.
+          </p>
+          <Button className="mt-1 rounded-2xl" onClick={() => setSubjectDraft(newSubjectDraft())}>
+            <Plus className="mr-1 h-4 w-4" /> Add Subject
+          </Button>
+        </div>
       ) : (
         <div className="grid gap-3">
           {subjects.map((subject) => {
