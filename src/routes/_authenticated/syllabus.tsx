@@ -2,7 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { ChevronDown, ChevronUp, Plus, Search, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/study/app-shell";
-import { EmptyState, ProgressBar, SubjectIcon } from "@/components/study/primitives";
+import { ProgressBar, SubjectIcon } from "@/components/study/primitives";
+import { ConfirmDialog } from "@/components/study/confirm-dialog";
+import { SubjectDialog, type SubjectDraft } from "@/components/study/subject-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,8 +26,10 @@ import {
 import {
   useChapters,
   useDeleteChapter,
+  useDeleteSubject,
   useReorderChapters,
   useSaveChapter,
+  useSaveSubject,
   useSubjects,
 } from "@/lib/data";
 import {
@@ -35,6 +39,7 @@ import {
   chapterProgress,
   colorOf,
   type Chapter,
+  type Subject,
 } from "@/lib/study";
 import { cn } from "@/lib/utils";
 
@@ -64,11 +69,24 @@ function SyllabusPage() {
   const save = useSaveChapter();
   const remove = useDeleteChapter();
   const reorder = useReorderChapters();
+  const saveSubject = useSaveSubject();
+  const removeSubject = useDeleteSubject();
 
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("all");
   const [open, setOpen] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [subjectDraft, setSubjectDraft] = useState<SubjectDraft | null>(null);
+  const [chapterToDelete, setChapterToDelete] = useState<Chapter | null>(null);
+  const [subjectToDelete, setSubjectToDelete] = useState<Subject | null>(null);
+
+  const newSubjectDraft = (): SubjectDraft => ({
+    name: "",
+    icon: "book",
+    color: "lavender",
+    daily_goal_minutes: 60,
+    weekly_goal_minutes: 300,
+  });
 
   const overall = chapterProgress(chapters);
 
