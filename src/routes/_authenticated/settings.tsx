@@ -9,7 +9,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
-import { exportAllData, importAllData, resetAllData, useProfile, useSaveProfile } from "@/lib/data";
+import {
+  exportAllData,
+  importAllData,
+  resetAllData,
+  useChapters,
+  useProfile,
+  useSaveProfile,
+  useSessions,
+  useSubjects,
+  useTimetable,
+} from "@/lib/data";
+import { downloadStudyReport } from "@/lib/report";
 import { useTheme, type ThemeChoice } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +43,10 @@ function SettingsPage() {
   const queryClient = useQueryClient();
   const { data: profile } = useProfile();
   const saveProfile = useSaveProfile();
+  const { data: subjects = [] } = useSubjects();
+  const { data: chapters = [] } = useChapters();
+  const { data: sessions = [] } = useSessions();
+  const { data: timetable = [] } = useTimetable();
   const { theme, setTheme } = useTheme();
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -202,6 +217,15 @@ function SettingsPage() {
         <section>
           <SectionTitle>Data</SectionTitle>
           <div className="card-soft grid gap-2 p-4">
+            <Button
+              className="rounded-2xl"
+              onClick={() => {
+                downloadStudyReport({ profile: profile ?? null, subjects, chapters, sessions, timetable });
+                toast.success("PDF report downloaded");
+              }}
+            >
+              Export PDF report
+            </Button>
             <Button
               variant="secondary"
               className="rounded-2xl"
