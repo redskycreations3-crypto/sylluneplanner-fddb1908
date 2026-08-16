@@ -278,13 +278,27 @@ function SettingsPage() {
           <SectionTitle>Data</SectionTitle>
           <div className="card-soft grid gap-2 p-4">
             <Button
-              className="rounded-2xl"
-              onClick={() => {
-                downloadStudyReport({ profile: profile ?? null, subjects, chapters, sessions, timetable });
-                toast.success("PDF report downloaded");
+              className="h-12 rounded-2xl"
+              onClick={async () => {
+                try {
+                  const result = await downloadStudyReport({
+                    profile: profile ?? null,
+                    subjects,
+                    chapters,
+                    sessions,
+                    timetable,
+                  });
+                  toast.success(
+                    result.method === "shared"
+                      ? "Choose where to save your tracker PDF"
+                      : "Tracker record PDF saved",
+                  );
+                } catch {
+                  toast.error("Could not save the PDF on this device");
+                }
               }}
             >
-              Export PDF report
+              Download tracker record PDF
             </Button>
             <Button
               variant="secondary"
