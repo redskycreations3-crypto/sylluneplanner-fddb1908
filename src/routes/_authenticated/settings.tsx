@@ -23,6 +23,7 @@ import {
 import { downloadStudyReport } from "@/lib/report";
 import { clearResolutions, usePendingCount, useSyncResolutions } from "@/lib/offline";
 import { useTheme, type ThemeChoice } from "@/lib/theme";
+import { autoProgressSettings, type AutoProgressRule } from "@/lib/auto-progress";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/settings")({
