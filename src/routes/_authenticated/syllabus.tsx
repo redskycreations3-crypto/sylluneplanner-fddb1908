@@ -365,7 +365,7 @@ function SyllabusPage() {
                 variant="ghost"
                 className="text-destructive"
                 onClick={() => {
-                  remove.mutate(draft.id!);
+                  setChapterToDelete(chapters.find((c) => c.id === draft.id) ?? null);
                   setDraft(null);
                 }}
               >
@@ -395,6 +395,45 @@ function SyllabusPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <SubjectDialog
+        draft={subjectDraft}
+        onChange={setSubjectDraft}
+        onClose={() => setSubjectDraft(null)}
+        onSave={(next) => {
+          saveSubject.mutate({
+            ...(next.id ? { id: next.id } : {}),
+            name: next.name?.trim() || "New subject",
+            icon: next.icon ?? "book",
+            color: next.color ?? "lavender",
+            daily_goal_minutes: next.daily_goal_minutes ?? 60,
+            weekly_goal_minutes: next.weekly_goal_minutes ?? 300,
+          });
+          setSubjectDraft(null);
+        }}
+      />
+
+      <ConfirmDialog
+        open={chapterToDelete !== null}
+        title="Delete this chapter?"
+        description="This will remove the chapter and its syllabus progress."
+        onCancel={() => setChapterToDelete(null)}
+        onConfirm={() => {
+          if (chapterToDelete) remove.mutate(chapterToDelete.id);
+          setChapterToDelete(null);
+        }}
+      />
+
+      <ConfirmDialog
+        open={subjectToDelete !== null}
+        title={`Delete ${subjectToDelete?.name ?? "subject"}?`}
+        description="This will permanently delete the subject, all its chapters, and related syllabus progress."
+        onCancel={() => setSubjectToDelete(null)}
+        onConfirm={() => {
+          if (subjectToDelete) removeSubject.mutate(subjectToDelete.id);
+          setSubjectToDelete(null);
+        }}
+      />
     </AppShell>
   );
 }
