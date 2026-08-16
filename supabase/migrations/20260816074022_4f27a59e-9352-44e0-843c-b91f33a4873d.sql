@@ -1,0 +1,1 @@
+DELETE FROM public.subjects WHERE name IN ('OfflineFlow Subject','OF2  Subject','OF2 Subject','ProbeSubject','OfflineTest Subject');
