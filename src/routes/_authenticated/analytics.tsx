@@ -118,6 +118,12 @@ function AnalyticsPage() {
     .filter((row) => row.value > 0)
     .sort((a, b) => b.value - a.value);
 
+  // Where the time came from: timer, pomodoro or manually logged.
+  const bySource = (["Timer", "Pomodoro", "Manual"] as const).map((label) => ({
+    label,
+    value: sessionSeconds(scoped.filter((s) => sessionSourceLabel(s) === label)),
+  }));
+
   const byWeekday = DAYS.map((day) => ({
     day: day.value,
     label: day.label,
@@ -269,6 +275,18 @@ function AnalyticsPage() {
           <p className="num text-3xl font-bold">{formatDuration(total)}</p>
           <p className="text-[11px] text-muted-foreground">{scoped.length} sessions</p>
         </div>
+
+        <section>
+          <SectionTitle>By source</SectionTitle>
+          <div className="grid grid-cols-3 gap-3">
+            {bySource.map((row) => (
+              <div key={row.label} className="card-soft min-w-0 p-3 text-center">
+                <p className="num truncate text-base font-bold">{formatDuration(row.value)}</p>
+                <p className="text-[11px] text-muted-foreground">{row.label}</p>
+              </div>
+            ))}
+          </div>
+        </section>
 
         <section>
           <SectionTitle>Subject breakdown</SectionTitle>
