@@ -104,7 +104,13 @@ function SyllabusPage() {
           <Button
             size="sm"
             className="rounded-2xl"
-            onClick={() => setDraft({ subject_id: subjects[0]?.id, status: "not_started", priority: "medium" })}
+            onClick={() =>
+              setDraft({
+                subject_id: subjects[0]?.id ?? "",
+                status: "not_started",
+                priority: "medium",
+              })
+            }
           >
             <Plus className="mr-1 h-4 w-4" /> Chapter
           </Button>
