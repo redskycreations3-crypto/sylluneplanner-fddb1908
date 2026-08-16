@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Chapter, Profile, StudySession, Subject, TimetableEntry } from "./study";
+import { enqueue, flushOutbox, isOnline, offlineUserId, readOutbox } from "./offline";
+import { useEffect } from "react";
 
 const STARTER_SUBJECTS: Array<{
   name: string;
