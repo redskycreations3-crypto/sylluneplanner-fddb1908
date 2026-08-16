@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Chapter, Profile, StudySession, Subject, TimetableEntry } from "./study";
-import { dayKey } from "./study";
+import { dayKey, normalizeChapter } from "./study";
 import type { DailyGoal } from "./score";
 import { DEFAULT_DAILY_GOAL_MINUTES } from "./score";
 import { enqueue, enqueueDelete, flushOutbox, isOnline, offlineUserId, readOutbox } from "./offline";
@@ -344,7 +344,9 @@ export function useSaveChapter() {
   const invalidate = useInvalidate(["chapters"]);
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: Partial<Chapter> & { id?: string; subject_id?: string }) => {
+    mutationFn: async (raw: Partial<Chapter> & { id?: string; subject_id?: string }) => {
+      // 100% always means completed; revision stays locked until then.
+      const input = normalizeChapter(raw);
       const userId = isOnline() ? await currentUserId() : await offlineUserId();
       if (!userId) throw new Error("Not signed in");
       if (input.id) {
