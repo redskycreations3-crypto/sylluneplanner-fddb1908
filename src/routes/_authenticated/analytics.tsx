@@ -474,15 +474,7 @@ function AnalyticsPage() {
         </section>
 
         <section>
-          <SectionTitle
-            action={
-              <Link to="/sessions" className="text-xs font-semibold text-primary">
-                Session log
-              </Link>
-            }
-          >
-            Stats
-          </SectionTitle>
+          <SectionTitle>Stats</SectionTitle>
           <div className="grid grid-cols-2 gap-3">
             {[
               { label: "Sessions", value: String(scoped.length) },
