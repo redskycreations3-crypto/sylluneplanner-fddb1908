@@ -6,7 +6,13 @@ import { AppShell } from "@/components/study/app-shell";
 import { SubjectIcon } from "@/components/study/primitives";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useChapters, useProfile, useSaveSession, useSubjects } from "@/lib/data";
+import { useChapters, useProfile, useSaveChapter, useSaveSession, useSessions, useSubjects } from "@/lib/data";
+import {
+  autoProgressSettings,
+  chapterTotals,
+  evaluateChapterProgress,
+  progressLabel,
+} from "@/lib/auto-progress";
 import { useTimer } from "@/lib/timer";
 import { colorOf, formatClock, formatDuration } from "@/lib/study";
 import { cn } from "@/lib/utils";
@@ -29,8 +35,10 @@ function FocusPage() {
   const { data: subjects = [] } = useSubjects();
   const { data: chapters = [] } = useChapters();
   const { data: profile } = useProfile();
+  const { data: sessions = [] } = useSessions();
   const timer = useTimer();
   const saveSession = useSaveSession();
+  const saveChapter = useSaveChapter();
 
   const [note, setNote] = useState("");
   const [confirming, setConfirming] = useState(false);
@@ -41,6 +49,8 @@ function FocusPage() {
   const subjectChapters = chapters.filter((c) => c.subject_id === state.subjectId);
   const chapter = chapters.find((c) => c.id === state.chapterId) ?? null;
   const display = state.mode === "countdown" ? remaining : elapsed;
+  const settings = autoProgressSettings(profile);
+  const chapterProgress = chapter ? progressLabel(settings, chapterTotals(sessions, chapter.id)) : null;
 
   function stop() {
     if (elapsed < 5) {
@@ -68,6 +78,23 @@ function FocusPage() {
     setConfirming(false);
     timer.clear();
     toast.success(`Saved ${formatDuration(seconds)}`);
+
+    if (state.chapterId) {
+      const target = chapters.find((c) => c.id === state.chapterId);
+      if (target) {
+        const before = chapterTotals(sessions, target.id);
+        const totals = {
+          minutes: before.minutes + Math.round(seconds / 60),
+          sessions: before.sessions + 1,
+        };
+        const outcome = evaluateChapterProgress(target, totals, settings);
+        if (outcome.change !== "none") {
+          await saveChapter.mutateAsync({ id: target.id, status: outcome.status });
+          if (outcome.change === "completed") toast.success(outcome.message);
+          else toast(outcome.message);
+        }
+      }
+    }
   }
 
   return (
@@ -90,6 +117,11 @@ function FocusPage() {
             <p className="text-xs text-muted-foreground">Pick a subject below</p>
           )}
           {finished ? <p className="text-xs font-semibold text-primary">Countdown complete 🎉</p> : null}
+          {chapter && chapterProgress ? (
+            <p className="text-[11px] text-muted-foreground">
+              Auto-complete progress · {chapterProgress}
+            </p>
+          ) : null}
 
           <div className="mt-2 flex items-center gap-3">
             {!isActive ? (

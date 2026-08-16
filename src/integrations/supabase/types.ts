@@ -66,6 +66,11 @@ export type Database = {
       }
       profiles: {
         Row: {
+          auto_complete_minutes: number
+          auto_complete_sessions: number
+          auto_progress_enabled: boolean
+          auto_progress_rule: string
+          auto_start_in_progress: boolean
           avatar_emoji: string
           break_minutes: number
           created_at: string
@@ -85,6 +90,11 @@ export type Database = {
           weekly_goal_minutes: number
         }
         Insert: {
+          auto_complete_minutes?: number
+          auto_complete_sessions?: number
+          auto_progress_enabled?: boolean
+          auto_progress_rule?: string
+          auto_start_in_progress?: boolean
           avatar_emoji?: string
           break_minutes?: number
           created_at?: string
@@ -104,6 +114,11 @@ export type Database = {
           weekly_goal_minutes?: number
         }
         Update: {
+          auto_complete_minutes?: number
+          auto_complete_sessions?: number
+          auto_progress_enabled?: boolean
+          auto_progress_rule?: string
+          auto_start_in_progress?: boolean
           avatar_emoji?: string
           break_minutes?: number
           created_at?: string

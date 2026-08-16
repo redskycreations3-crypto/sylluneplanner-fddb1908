@@ -23,6 +23,7 @@ import {
 import { downloadStudyReport } from "@/lib/report";
 import { clearResolutions, usePendingCount, useSyncResolutions } from "@/lib/offline";
 import { useTheme, type ThemeChoice } from "@/lib/theme";
+import { autoProgressSettings, type AutoProgressRule } from "@/lib/auto-progress";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/settings")({
@@ -172,6 +173,8 @@ function SettingsPage() {
           </div>
         </section>
 
+        <AutoProgressCard profile={profile ?? null} patch={patch} />
+
         <section>
           <SectionTitle>Notifications</SectionTitle>
           <div className="card-soft grid gap-3 p-4">
@@ -291,6 +294,92 @@ function SettingsPage() {
 }
 
 function SyncActivity() {
+  return <SyncActivityInner />;
+}
+
+function AutoProgressCard({
+  profile,
+  patch,
+}: {
+  profile: import("@/lib/study").Profile | null;
+  patch: (values: Record<string, unknown>) => void;
+}) {
+  const settings = autoProgressSettings(profile);
+  const RULES: { key: AutoProgressRule; label: string }[] = [
+    { key: "minutes", label: "Study minutes" },
+    { key: "sessions", label: "Sessions" },
+    { key: "manual", label: "Manual only" },
+  ];
+  return (
+    <section>
+      <SectionTitle>Chapter auto-progress</SectionTitle>
+      <div className="card-soft grid gap-3 p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <Label className="text-xs font-medium">Update chapters from focus sessions</Label>
+            <p className="text-[11px] text-muted-foreground">
+              Chapters advance automatically when you study them.
+            </p>
+          </div>
+          <Switch
+            checked={settings.enabled}
+            onCheckedChange={(checked) => patch({ auto_progress_enabled: checked })}
+          />
+        </div>
+
+        <div className="grid gap-1">
+          <Label className="text-xs font-medium">Complete a chapter when it reaches</Label>
+          <div className="flex gap-2">
+            {RULES.map((rule) => (
+              <button
+                key={rule.key}
+                onClick={() => patch({ auto_progress_rule: rule.key })}
+                className={cn(
+                  "flex-1 rounded-2xl px-2 py-2 text-[11px] font-semibold",
+                  settings.rule === rule.key ? "bg-primary text-primary-foreground" : "bg-muted",
+                )}
+              >
+                {rule.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {settings.rule !== "manual" ? (
+          <div className="grid gap-1">
+            <Label>{settings.rule === "sessions" ? "Sessions needed" : "Minutes needed"}</Label>
+            <Input
+              type="number"
+              min={1}
+              key={`${settings.rule}-${profile?.updated_at ?? ""}`}
+              defaultValue={settings.rule === "sessions" ? settings.sessions : settings.minutes}
+              onBlur={(e) => {
+                const value = Number(e.target.value);
+                if (!Number.isFinite(value) || value <= 0) return;
+                patch(
+                  settings.rule === "sessions"
+                    ? { auto_complete_sessions: value }
+                    : { auto_complete_minutes: value },
+                );
+              }}
+              className="num rounded-2xl"
+            />
+          </div>
+        ) : null}
+
+        <div className="flex items-center justify-between gap-3">
+          <Label className="text-xs font-medium">Mark as In progress on first session</Label>
+          <Switch
+            checked={settings.startInProgress}
+            onCheckedChange={(checked) => patch({ auto_start_in_progress: checked })}
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function SyncActivityInner() {
   const resolutions = useSyncResolutions();
   const pending = usePendingCount();
   return (
