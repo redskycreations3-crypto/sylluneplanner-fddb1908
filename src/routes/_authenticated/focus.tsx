@@ -456,6 +456,7 @@ function FocusPage() {
           </div>
         ) : null}
       </div>
+      <ManualSessionDialog target={manual} onClose={() => setManual(null)} />
     </AppShell>
   );
 }
