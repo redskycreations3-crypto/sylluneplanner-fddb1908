@@ -347,9 +347,9 @@ export async function syncStudyReminders() {
   if (!allowed("study_reminders")) return;
   for (const [index, reminder] of reminders.entries()) {
     if (!reminder.enabled) continue;
-    const days = reminder.days.length ? reminder.days : [undefined];
+    const days: (number | undefined)[] = reminder.days.length ? reminder.days : [undefined];
     for (const [slot, day] of days.entries()) {
-      const at = nextOccurrence(reminder.time, day as number | undefined);
+      const at = nextOccurrence(reminder.time, day);
       await scheduleAt(
         "study_reminders",
         IDS.reminderBase + index * 10 + slot,

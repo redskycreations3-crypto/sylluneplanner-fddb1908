@@ -62,7 +62,10 @@ function NotificationsPage() {
 
   function addReminder() {
     const name = label.trim();
-    if (!name) return toast.error("Name the reminder first");
+    if (!name) {
+      toast.error("Name the reminder first");
+      return;
+    }
     const next: StudyReminder = { id: Date.now(), label: name, time, days: [], enabled: true };
     saveReminders([...getReminders(), next]);
     setLabel("");
