@@ -252,27 +252,15 @@ function SettingsPage() {
 
         <section>
           <SectionTitle>Notifications</SectionTitle>
-          <div className="card-soft grid gap-3 p-4">
-            {[
-              { key: "notify_timetable", label: "Upcoming timetable sessions" },
-              { key: "notify_daily_goal", label: "Daily goal reminder" },
-              { key: "notify_revision", label: "Revision deadlines" },
-              { key: "notify_streak", label: "Streak reminders" },
-            ].map((row) => (
-              <div key={row.key} className="flex items-center justify-between gap-3">
-                <Label className="text-xs font-medium">{row.label}</Label>
-                <Switch
-                  checked={Boolean((profile as unknown as Record<string, boolean> | null)?.[row.key])}
-                  onCheckedChange={async (checked) => {
-                    if (checked && typeof Notification !== "undefined" && Notification.permission === "default") {
-                      await Notification.requestPermission();
-                    }
-                    patch({ [row.key]: checked });
-                  }}
-                />
-              </div>
-            ))}
-          </div>
+          <Link to="/notifications" className="card-soft flex items-center justify-between gap-3 p-4">
+            <div>
+              <p className="text-sm font-semibold">Notifications</p>
+              <p className="text-[11px] text-muted-foreground">
+                Permission, Pomodoro alerts, study reminders, goal and streak notifications
+              </p>
+            </div>
+            <span className="text-primary">→</span>
+          </Link>
         </section>
 
         <section>
