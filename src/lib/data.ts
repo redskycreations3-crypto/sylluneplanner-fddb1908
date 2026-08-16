@@ -295,18 +295,47 @@ export function useSaveChapter() {
         );
       } else {
         if (!input.subject_id) throw new Error("Pick a subject");
-        const { count } = await supabase
-          .from("chapters")
-          .select("id", { count: "exact", head: true })
-          .eq("subject_id", input.subject_id);
-        const { error } = await supabase.from("chapters").insert({
+        const subjectId = input.subject_id;
+        const localCount = (qc.getQueryData<Chapter[]>(["chapters"]) ?? []).filter(
+          (row) => row.subject_id === subjectId,
+        ).length;
+        const buildPayload = (position: number) => ({
           ...input,
-          subject_id: input.subject_id,
+          subject_id: subjectId,
           name: input.name ?? "New chapter",
-          position: input.position ?? count ?? 0,
+          position: input.position ?? position,
           user_id: userId,
         });
-        if (error) throw error;
+        await offlineFirst(
+          async () => {
+            const { count } = await supabase
+              .from("chapters")
+              .select("id", { count: "exact", head: true })
+              .eq("subject_id", subjectId);
+            const { error } = await supabase.from("chapters").insert(buildPayload(count ?? localCount));
+            if (error) throw error;
+          },
+          () => {
+            const payload = buildPayload(localCount);
+            const queued = enqueue({ kind: "insert", table: "chapters", payload });
+            qc.setQueryData<Chapter[]>(["chapters"], (rows) => [
+              ...(rows ?? []),
+              {
+                id: queued.id,
+                user_id: userId,
+                subject_id: subjectId,
+                name: payload.name,
+                status: input.status ?? "not_started",
+                revision: input.revision ?? "none",
+                priority: input.priority ?? "medium",
+                target_date: input.target_date ?? null,
+                notes: input.notes ?? null,
+                position: payload.position,
+                created_at: queued.at,
+              } as Chapter,
+            ]);
+          },
+        );
       }
     },
     onSuccess: invalidate,
@@ -315,10 +344,19 @@ export function useSaveChapter() {
 
 export function useDeleteChapter() {
   const invalidate = useInvalidate(["chapters", "sessions"]);
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("chapters").delete().eq("id", id);
-      if (error) throw error;
+      await offlineFirst(
+        async () => {
+          const { error } = await supabase.from("chapters").delete().eq("id", id);
+          if (error) throw error;
+        },
+        () => {
+          enqueueDelete("chapters", id);
+          qc.setQueryData<Chapter[]>(["chapters"], (rows) => (rows ?? []).filter((row) => row.id !== id));
+        },
+      );
     },
     onSuccess: invalidate,
   });
@@ -326,15 +364,31 @@ export function useDeleteChapter() {
 
 export function useReorderChapters() {
   const invalidate = useInvalidate(["chapters"]);
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: async (ordered: { id: string; position: number }[]) => {
-      for (const row of ordered) {
-        const { error } = await supabase
-          .from("chapters")
-          .update({ position: row.position })
-          .eq("id", row.id);
-        if (error) throw error;
-      }
+      await offlineFirst(
+        async () => {
+          for (const row of ordered) {
+            const { error } = await supabase
+              .from("chapters")
+              .update({ position: row.position })
+              .eq("id", row.id);
+            if (error) throw error;
+          }
+        },
+        () => {
+          const positions = new Map(ordered.map((row) => [row.id, row.position]));
+          for (const row of ordered) {
+            enqueue({ kind: "update", table: "chapters", rowId: row.id, payload: { position: row.position } });
+          }
+          qc.setQueryData<Chapter[]>(["chapters"], (rows) =>
+            (rows ?? []).map((row) =>
+              positions.has(row.id) ? { ...row, position: positions.get(row.id)! } : row,
+            ),
+          );
+        },
+      );
     },
     onSuccess: invalidate,
   });
