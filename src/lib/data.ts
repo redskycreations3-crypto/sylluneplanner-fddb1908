@@ -285,14 +285,25 @@ export function useDeleteSubject() {
 
 export function useSaveChapter() {
   const invalidate = useInvalidate(["chapters"]);
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: Partial<Chapter> & { id?: string; subject_id?: string }) => {
-      const userId = await currentUserId();
+      const userId = isOnline() ? await currentUserId() : await offlineUserId();
       if (!userId) throw new Error("Not signed in");
       if (input.id) {
         const { id, ...patch } = input;
-        const { error } = await supabase.from("chapters").update(patch).eq("id", id);
-        if (error) throw error;
+        await offlineFirst(
+          async () => {
+            const { error } = await supabase.from("chapters").update(patch).eq("id", id);
+            if (error) throw error;
+          },
+          () => {
+            enqueue({ kind: "update", table: "chapters", rowId: id, payload: patch });
+            qc.setQueryData<Chapter[]>(["chapters"], (rows) =>
+              (rows ?? []).map((row) => (row.id === id ? { ...row, ...patch } : row)),
+            );
+          },
+        );
       } else {
         if (!input.subject_id) throw new Error("Pick a subject");
         const { error } = await supabase.from("chapters").insert({
