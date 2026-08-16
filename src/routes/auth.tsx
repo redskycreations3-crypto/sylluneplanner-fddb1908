@@ -2,7 +2,6 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -115,21 +114,6 @@ function AuthPage() {
               {mode === "signup" ? "Create account" : "Sign in"}
             </Button>
           </form>
-
-          <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
-            <span className="h-px flex-1 bg-border" /> or <span className="h-px flex-1 bg-border" />
-          </div>
-
-          <Button
-            type="button"
-            variant="outline"
-            className="h-11 w-full rounded-2xl"
-            onClick={() =>
-              lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin })
-            }
-          >
-            Continue with Google
-          </Button>
 
           <button
             type="button"
