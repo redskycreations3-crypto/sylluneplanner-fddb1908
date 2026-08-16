@@ -73,6 +73,46 @@ export function colorOf(subject?: { color: string } | null) {
   return SUBJECT_COLORS[(subject?.color ?? "lavender") as SubjectColor] ?? SUBJECT_COLORS.lavender;
 }
 
+export const SUBJECT_COLOR_ORDER = Object.keys(SUBJECT_COLORS) as SubjectColor[];
+
+/** Common subjects get a sensible default hue; everything else takes the next free color. */
+const NAME_COLOR_HINTS: Record<string, SubjectColor> = {
+  physics: "lavender",
+  chemistry: "sage",
+  "inorganic chem": "sage",
+  "organic chem": "mint",
+  maths: "sky",
+  math: "sky",
+  mathematics: "sky",
+  biology: "peach",
+  botany: "mint",
+  zoology: "peach",
+  "computer science": "sky",
+  computer: "sky",
+  english: "rose",
+  assamese: "lemon",
+  hindi: "lilac",
+};
+
+/**
+ * Picks a distinct color for a new subject so no two subjects share one until
+ * the palette runs out. Stored on the subject, never derived per screen.
+ */
+export function nextSubjectColor(existing: { color: string }[], name?: string): SubjectColor {
+  const used = new Set(existing.map((s) => s.color));
+  const hint = name ? NAME_COLOR_HINTS[name.trim().toLowerCase()] : undefined;
+  if (hint && !used.has(hint)) return hint;
+  const free = SUBJECT_COLOR_ORDER.find((key) => !used.has(key));
+  return free ?? SUBJECT_COLOR_ORDER[existing.length % SUBJECT_COLOR_ORDER.length]!;
+}
+
+/** "Timer" / "Pomodoro" / "Manual" badge for a stored session record. */
+export function sessionSourceLabel(session: Pick<StudySession, "source" | "session_type">) {
+  if (session.source === "manual" || session.session_type === "manual") return "Manual";
+  if (session.session_type === "pomodoro") return "Pomodoro";
+  return "Timer";
+}
+
 export const SUBJECT_ICONS = [
   "book",
   "atom",

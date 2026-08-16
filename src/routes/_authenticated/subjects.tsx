@@ -10,6 +10,7 @@ import { useChapters, useDeleteSubject, useSaveSubject, useSessions, useSubjects
 import {
   colorOf,
   formatDuration,
+  nextSubjectColor,
   sessionSeconds,
   sessionsOn,
   type Subject,
@@ -40,7 +41,7 @@ function SubjectsPage() {
   const newDraft = (): SubjectDraft => ({
     name: "",
     icon: "book",
-    color: "lavender",
+    color: nextSubjectColor(subjects),
     daily_goal_minutes: 60,
     weekly_goal_minutes: 300,
   });
@@ -134,7 +135,7 @@ function SubjectsPage() {
             ...(next.id ? { id: next.id } : {}),
             name: next.name?.trim() || "New subject",
             icon: next.icon ?? "book",
-            color: next.color ?? "lavender",
+            color: next.color ?? nextSubjectColor(subjects, next.name),
             daily_goal_minutes: next.daily_goal_minutes ?? 60,
             weekly_goal_minutes: next.weekly_goal_minutes ?? 300,
           });

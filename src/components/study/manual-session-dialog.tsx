@@ -99,8 +99,9 @@ export function ManualSessionDialog({
       started_at: startedAt.toISOString(),
       ended_at: endedAt.toISOString(),
       duration_seconds: seconds,
-      session_type: "manual",
-      source: "manual",
+      // Editing a timer/pomodoro session keeps its original kind.
+      session_type: existing ? existing.session_type : "manual",
+      source: existing ? existing.source : "manual",
       note: note.trim() || null,
     });
     toast.success(existing ? "Session updated" : "Study time added");
