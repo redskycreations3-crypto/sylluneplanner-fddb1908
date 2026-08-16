@@ -86,6 +86,26 @@ function SessionsPage() {
           <Plus className="mr-1 h-4 w-4" /> Add study time
         </Button>
 
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search subject, chapter, notes..."
+            className="h-11 rounded-2xl border-none bg-muted pl-9 pr-9 text-sm"
+            aria-label="Search sessions"
+          />
+          {query ? (
+            <button
+              onClick={() => setQuery("")}
+              className="absolute right-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full text-muted-foreground hover:bg-muted-foreground/10"
+              aria-label="Clear search"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          ) : null}
+        </div>
+
         <div className="flex flex-wrap gap-2">
           {SOURCES.map((item) => (
             <button
