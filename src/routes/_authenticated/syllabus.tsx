@@ -86,7 +86,7 @@ function SyllabusPage() {
   const newSubjectDraft = (): SubjectDraft => ({
     name: "",
     icon: "book",
-    color: "lavender",
+    color: nextSubjectColor(subjects),
     daily_goal_minutes: 60,
     weekly_goal_minutes: 300,
   });
