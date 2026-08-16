@@ -162,8 +162,27 @@ function SettingsPage() {
         <section>
           <SectionTitle>Study goals</SectionTitle>
           <div className="card-soft grid gap-3 p-4">
+            <div className="grid gap-1">
+              <Label>Daily study goal (hours)</Label>
+              <Input
+                type="number"
+                min={0.5}
+                step={0.5}
+                key={`daily-hours-${profile?.updated_at ?? ""}`}
+                defaultValue={((profile?.daily_goal_minutes ?? 240) / 60).toString()}
+                onBlur={(e) => {
+                  const hours = Number(e.target.value);
+                  if (!Number.isFinite(hours) || hours <= 0) return;
+                  patch({ daily_goal_minutes: Math.round(hours * 60) });
+                }}
+                className="num rounded-2xl"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Your daily score is study time ÷ this goal, capped at 100. Past days keep the goal
+                they had.
+              </p>
+            </div>
             {[
-              { key: "daily_goal_minutes", label: "Daily goal (minutes)" },
               { key: "weekly_goal_minutes", label: "Weekly goal (minutes)" },
               { key: "streak_min_minutes", label: "Minutes that count as a study day" },
             ].map((field) => (
@@ -375,11 +394,6 @@ function AutoProgressCard({
   patch: (values: Record<string, unknown>) => void;
 }) {
   const settings = autoProgressSettings(profile);
-  const RULES: { key: AutoProgressRule; label: string }[] = [
-    { key: "minutes", label: "Study minutes" },
-    { key: "sessions", label: "Sessions" },
-    { key: "manual", label: "Manual only" },
-  ];
   return (
     <section>
       <SectionTitle>Chapter auto-progress</SectionTitle>
@@ -388,7 +402,7 @@ function AutoProgressCard({
           <div>
             <Label className="text-xs font-medium">Update chapters from focus sessions</Label>
             <p className="text-[11px] text-muted-foreground">
-              Chapters advance automatically when you study them.
+              Study time never completes a chapter — you set the progress % yourself.
             </p>
           </div>
           <Switch
@@ -397,48 +411,8 @@ function AutoProgressCard({
           />
         </div>
 
-        <div className="grid gap-1">
-          <Label className="text-xs font-medium">Complete a chapter when it reaches</Label>
-          <div className="flex gap-2">
-            {RULES.map((rule) => (
-              <button
-                key={rule.key}
-                onClick={() => patch({ auto_progress_rule: rule.key })}
-                className={cn(
-                  "flex-1 rounded-2xl px-2 py-2 text-[11px] font-semibold",
-                  settings.rule === rule.key ? "bg-primary text-primary-foreground" : "bg-muted",
-                )}
-              >
-                {rule.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {settings.rule !== "manual" ? (
-          <div className="grid gap-1">
-            <Label>{settings.rule === "sessions" ? "Sessions needed" : "Minutes needed"}</Label>
-            <Input
-              type="number"
-              min={1}
-              key={`${settings.rule}-${profile?.updated_at ?? ""}`}
-              defaultValue={settings.rule === "sessions" ? settings.sessions : settings.minutes}
-              onBlur={(e) => {
-                const value = Number(e.target.value);
-                if (!Number.isFinite(value) || value <= 0) return;
-                patch(
-                  settings.rule === "sessions"
-                    ? { auto_complete_sessions: value }
-                    : { auto_complete_minutes: value },
-                );
-              }}
-              className="num rounded-2xl"
-            />
-          </div>
-        ) : null}
-
         <div className="flex items-center justify-between gap-3">
-          <Label className="text-xs font-medium">Mark as In progress on first session</Label>
+          <Label className="text-xs font-medium">Mark as Studying on first session</Label>
           <Switch
             checked={settings.startInProgress}
             onCheckedChange={(checked) => patch({ auto_start_in_progress: checked })}
