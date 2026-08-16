@@ -3,40 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Chapter, Profile, StudySession, Subject, TimetableEntry } from "./study";
 import { enqueue, flushOutbox, isOnline, offlineUserId, readOutbox } from "./offline";
 import { useEffect } from "react";
-
-const STARTER_SUBJECTS: Array<{
-  name: string;
-  icon: string;
-  color: string;
-  chapters: string[];
-}> = [
-  {
-    name: "Physics",
-    icon: "atom",
-    color: "lavender",
-    chapters: ["Current Electricity", "Optics", "Modern Physics", "Thermodynamics"],
-  },
-  {
-    name: "Chemistry",
-    icon: "flask",
-    color: "mint",
-    chapters: ["Solutions", "Chemical Kinetics", "Organic Basics"],
-  },
-  {
-    name: "Mathematics",
-    icon: "sigma",
-    color: "sky",
-    chapters: ["Integrals", "Probability", "Vectors"],
-  },
-  {
-    name: "Computer Science",
-    icon: "laptop",
-    color: "peach",
-    chapters: ["Data Structures", "Databases"],
-  },
-  { name: "English", icon: "book", color: "rose", chapters: ["Prose", "Writing Skills"] },
-  { name: "Assamese", icon: "languages", color: "lemon", chapters: ["Poetry", "Grammar"] },
-];
+import { toast } from "sonner";
 
 async function currentUserId() {
   const { data } = await supabase.auth.getUser();
@@ -65,8 +32,20 @@ export function useOutboxSync() {
     let cancelled = false;
     const sync = async () => {
       if (readOutbox().length === 0) return;
-      const synced = await flushOutbox();
-      if (synced > 0 && !cancelled) qc.invalidateQueries();
+      const { synced, resolutions } = await flushOutbox();
+      if (cancelled) return;
+      if (synced > 0) qc.invalidateQueries();
+      const conflicts = resolutions.filter((r) => r.outcome !== "synced");
+      if (conflicts.length > 0) {
+        toast.warning(
+          conflicts.length === 1
+            ? conflicts[0]!.message
+            : `${conflicts.length} overlapping offline sessions resolved on sync.`,
+          { description: "See Settings › Sync activity for details." },
+        );
+      } else if (synced > 0) {
+        toast.success(`Synced ${synced} offline change${synced > 1 ? "s" : ""}.`);
+      }
     };
     sync();
     window.addEventListener("online", sync);
@@ -95,10 +74,10 @@ async function runBootstrap() {
   const user = data.user;
   if (!user) return;
 
-  let { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
+  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
 
   if (!profile) {
-    const { data: created } = await supabase
+    await supabase
       .from("profiles")
       .upsert(
         {
@@ -107,53 +86,11 @@ async function runBootstrap() {
             (user.user_metadata?.["display_name"] as string | undefined) ??
             user.email?.split("@")[0] ??
             "Student",
+          seeded: true,
         },
         { onConflict: "id" },
-      )
-      .select()
-      .maybeSingle();
-    profile = created ?? null;
-  }
-
-  const { count } = await supabase
-    .from("subjects")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", user.id);
-
-  if (profile?.seeded && (count ?? 0) > 0) return;
-
-  if ((count ?? 0) === 0) {
-    await supabase
-      .from("subjects")
-      .upsert(
-        STARTER_SUBJECTS.map((starter, index) => ({
-          user_id: user.id,
-          name: starter.name,
-          icon: starter.icon,
-          color: starter.color,
-          position: index,
-        })),
-        { onConflict: "user_id,name", ignoreDuplicates: true },
       );
-
-    const { data: inserted } = await supabase.from("subjects").select("*").eq("user_id", user.id);
-
-    const chapters = (inserted ?? []).flatMap((subject) => {
-      const starter = STARTER_SUBJECTS.find((s) => s.name === subject.name);
-      return (starter?.chapters ?? []).map((name, i) => ({
-        user_id: user.id,
-        subject_id: subject.id,
-        name,
-        position: i,
-      }));
-    });
-    if (chapters.length > 0) {
-      await supabase
-        .from("chapters")
-        .upsert(chapters, { onConflict: "subject_id,name", ignoreDuplicates: true });
-    }
   }
-  await supabase.from("profiles").update({ seeded: true }).eq("id", user.id);
 }
 
 /* ---------- queries ---------- */
