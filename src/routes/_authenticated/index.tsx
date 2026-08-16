@@ -217,14 +217,22 @@ function HomePage() {
           ))}
         </div>
 
+        <button
+          onClick={() => setGoalOpen(true)}
+          className="flex w-full min-w-0 items-center justify-center gap-2 rounded-2xl border border-primary/25 bg-primary-soft py-3 text-sm font-semibold text-primary"
+        >
+          <Target className="h-4 w-4" /> Set Daily Goal
+          <span className="num text-xs font-medium opacity-70">
+            ({goalLabel(todayScore.goalMinutes)})
+          </span>
+        </button>
+
         <Link
           to="/focus"
           className="flex w-full min-w-0 items-center justify-center gap-2 rounded-3xl bg-primary py-4 text-base font-bold text-primary-foreground shadow-lg"
         >
           <Play className="h-5 w-5" /> START STUDY
         </Link>
-
-        {null}
 
         <button
           onClick={() => setManual("new")}
