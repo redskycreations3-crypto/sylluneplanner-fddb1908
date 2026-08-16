@@ -210,8 +210,15 @@ export function ManualSessionDialog({
           ) : null}
 
           <div className="grid gap-1.5">
-            <Label>Note (optional)</Label>
-            <Textarea value={note} onChange={(e) => setNote(e.target.value)} className="rounded-2xl" />
+            <Label htmlFor="session-note">Description / notes</Label>
+            <Textarea
+              id="session-note"
+              rows={3}
+              placeholder="What did you cover in this session?"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              className="rounded-2xl"
+            />
           </div>
         </div>
         <DialogFooter>
