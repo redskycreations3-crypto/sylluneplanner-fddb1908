@@ -184,10 +184,11 @@ function SyllabusPage() {
             const expanded = open === subject.id;
             return (
               <div key={subject.id} className="card-soft overflow-hidden">
-                <button
-                  className="flex w-full items-center gap-3 p-4 text-left"
-                  onClick={() => setOpen(expanded ? null : subject.id)}
-                >
+                <div className="flex w-full items-center gap-3 p-4 text-left">
+                  <button
+                    className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                    onClick={() => setOpen(expanded ? null : subject.id)}
+                  >
                   <SubjectIcon subject={subject} size="sm" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-bold">{subject.name}</p>
@@ -199,12 +200,23 @@ function SyllabusPage() {
                     </div>
                   </div>
                   {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </button>
+                  </button>
+                  <button
+                    className="shrink-0 text-muted-foreground"
+                    aria-label={`Delete ${subject.name}`}
+                    onClick={() => setSubjectToDelete(subject)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
 
                 {expanded ? (
                   <div className="grid gap-2 border-t border-border px-4 py-3">
                     {list.length === 0 ? (
-                      <p className="py-2 text-center text-xs text-muted-foreground">No chapters here.</p>
+                      <div className="grid place-items-center gap-1 py-3 text-center">
+                        <span className="text-2xl">📝</span>
+                        <p className="text-xs font-semibold">No chapters added yet.</p>
+                      </div>
                     ) : (
                       list.map((chapter, index) => {
                         const meta = CHAPTER_STATUSES.find((s) => s.value === chapter.status);
@@ -228,6 +240,12 @@ function SyllabusPage() {
                             <button onClick={() => move(list, index, 1)} aria-label="Move down">
                               <ChevronDown className="h-4 w-4 text-muted-foreground" />
                             </button>
+                            <button
+                              onClick={() => setChapterToDelete(chapter)}
+                              aria-label={`Delete ${chapter.name}`}
+                            >
+                              <Trash2 className="h-4 w-4 text-muted-foreground" />
+                            </button>
                           </div>
                         );
                       })
@@ -240,7 +258,7 @@ function SyllabusPage() {
                         setDraft({ subject_id: subject.id, status: "not_started", priority: "medium" })
                       }
                     >
-                      <Plus className="mr-1 h-4 w-4" /> Add chapter
+                      <Plus className="mr-1 h-4 w-4" /> Add Chapter
                     </Button>
                   </div>
                 ) : null}
