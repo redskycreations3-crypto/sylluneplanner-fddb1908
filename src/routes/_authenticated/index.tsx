@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Bell, Flame, Pencil, Plus, Settings, Play } from "lucide-react";
+import { Bell, Flame, Pencil, Plus, Settings, Play, Target } from "lucide-react";
 import { useState } from "react";
 import { AppShell } from "@/components/study/app-shell";
 import {
@@ -216,6 +216,16 @@ function HomePage() {
             </div>
           ))}
         </div>
+
+        <button
+          onClick={() => setGoalOpen(true)}
+          className="flex w-full min-w-0 items-center justify-center gap-2 rounded-2xl border border-primary/25 bg-primary-soft py-3 text-sm font-semibold text-primary"
+        >
+          <Target className="h-4 w-4" /> Set Daily Goal
+          <span className="num text-xs font-medium opacity-70">
+            ({goalLabel(todayScore.goalMinutes)})
+          </span>
+        </button>
 
         <Link
           to="/focus"
