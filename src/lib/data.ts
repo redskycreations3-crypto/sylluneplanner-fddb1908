@@ -41,52 +41,73 @@ async function currentUserId() {
   return data.user?.id ?? null;
 }
 
-export async function bootstrapAccount() {
+let bootstrapPromise: Promise<void> | null = null;
+
+export function bootstrapAccount() {
+  if (!bootstrapPromise) {
+    bootstrapPromise = runBootstrap().finally(() => {
+      bootstrapPromise = null;
+    });
+  }
+  return bootstrapPromise;
+}
+
+async function runBootstrap() {
   const { data } = await supabase.auth.getUser();
   const user = data.user;
   if (!user) return;
 
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
+  let { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
 
   if (!profile) {
-    await supabase.from("profiles").insert({
-      id: user.id,
-      display_name:
-        (user.user_metadata?.["display_name"] as string | undefined) ??
-        user.email?.split("@")[0] ??
-        "Student",
-    });
+    const { data: created } = await supabase
+      .from("profiles")
+      .upsert(
+        {
+          id: user.id,
+          display_name:
+            (user.user_metadata?.["display_name"] as string | undefined) ??
+            user.email?.split("@")[0] ??
+            "Student",
+        },
+        { onConflict: "id" },
+      )
+      .select()
+      .maybeSingle();
+    profile = created ?? null;
   }
-  if (profile?.seeded) return;
 
   const { count } = await supabase
     .from("subjects")
     .select("id", { count: "exact", head: true })
     .eq("user_id", user.id);
 
+  if (profile?.seeded && (count ?? 0) > 0) return;
+
   if ((count ?? 0) === 0) {
-    for (const [index, starter] of STARTER_SUBJECTS.entries()) {
-      const { data: subject } = await supabase
-        .from("subjects")
-        .insert({
+    const { data: inserted } = await supabase
+      .from("subjects")
+      .insert(
+        STARTER_SUBJECTS.map((starter, index) => ({
           user_id: user.id,
           name: starter.name,
           icon: starter.icon,
           color: starter.color,
           position: index,
-        })
-        .select()
-        .single();
-      if (!subject) continue;
-      await supabase.from("chapters").insert(
-        starter.chapters.map((name, i) => ({
-          user_id: user.id,
-          subject_id: subject.id,
-          name,
-          position: i,
         })),
-      );
-    }
+      )
+      .select();
+
+    const chapters = (inserted ?? []).flatMap((subject) => {
+      const starter = STARTER_SUBJECTS.find((s) => s.name === subject.name);
+      return (starter?.chapters ?? []).map((name, i) => ({
+        user_id: user.id,
+        subject_id: subject.id,
+        name,
+        position: i,
+      }));
+    });
+    if (chapters.length > 0) await supabase.from("chapters").insert(chapters);
   }
   await supabase.from("profiles").update({ seeded: true }).eq("id", user.id);
 }
