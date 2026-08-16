@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useChapters, useProfile, useSessions, useSubjects, useTimetable } from "@/lib/data";
 import { downloadStudyReport } from "@/lib/report";
+import { toast } from "sonner";
 import {
   DAYS,
   chapterProgress,
