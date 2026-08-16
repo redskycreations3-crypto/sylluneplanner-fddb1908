@@ -243,10 +243,15 @@ export function useSaveChapter() {
         );
       } else {
         if (!input.subject_id) throw new Error("Pick a subject");
+        const { count } = await supabase
+          .from("chapters")
+          .select("id", { count: "exact", head: true })
+          .eq("subject_id", input.subject_id);
         const { error } = await supabase.from("chapters").insert({
           ...input,
           subject_id: input.subject_id,
           name: input.name ?? "New chapter",
+          position: input.position ?? count ?? 0,
           user_id: userId,
         });
         if (error) throw error;
