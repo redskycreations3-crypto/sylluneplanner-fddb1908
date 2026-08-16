@@ -21,6 +21,7 @@ import {
   useTimetable,
 } from "@/lib/data";
 import { downloadStudyReport } from "@/lib/report";
+import { clearResolutions, usePendingCount, useSyncResolutions } from "@/lib/offline";
 import { useTheme, type ThemeChoice } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
