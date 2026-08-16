@@ -30,7 +30,7 @@ export async function savePdfDocument(doc: jsPDF, filename: string): Promise<Nat
     return { method: "saved" };
   }
 
-  const [{ Filesystem, Directory, Encoding }, { Share }] = await Promise.all([
+  const [{ Filesystem, Directory }, { Share }] = await Promise.all([
     import("@capacitor/filesystem"),
     import("@capacitor/share"),
   ]);
@@ -42,13 +42,12 @@ export async function savePdfDocument(doc: jsPDF, filename: string): Promise<Nat
 
   for (const directory of directories) {
     try {
+      // No `encoding` on purpose: Capacitor then treats `data` as base64 binary.
       const result = await Filesystem.writeFile({
         path: filename,
         data,
         directory,
         recursive: true,
-        // base64 payload → omit encoding so Capacitor decodes it to binary
-        encoding: undefined as unknown as typeof Encoding.UTF8 | undefined,
       });
       written = { directory, uri: result.uri };
       break;
