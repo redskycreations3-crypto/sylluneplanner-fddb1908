@@ -336,18 +336,53 @@ export function useReorderChapters() {
 }
 
 export function useSaveSession() {
+  const qc = useQueryClient();
   const invalidate = useInvalidate(["sessions"]);
   return useMutation({
     mutationFn: async (input: Partial<StudySession> & { id?: string }) => {
-      const userId = await currentUserId();
+      const userId = isOnline() ? await currentUserId() : await offlineUserId();
       if (!userId) throw new Error("Not signed in");
       if (input.id) {
         const { id, ...patch } = input;
-        const { error } = await supabase.from("study_sessions").update(patch).eq("id", id);
-        if (error) throw error;
+        await offlineFirst(
+          async () => {
+            const { error } = await supabase.from("study_sessions").update(patch).eq("id", id);
+            if (error) throw error;
+          },
+          () => {
+            enqueue({ kind: "update", table: "study_sessions", rowId: id, payload: patch });
+            qc.setQueryData<StudySession[]>(["sessions"], (rows) =>
+              (rows ?? []).map((row) => (row.id === id ? { ...row, ...patch } : row)),
+            );
+          },
+        );
       } else {
-        const { error } = await supabase.from("study_sessions").insert({ ...input, user_id: userId });
-        if (error) throw error;
+        const payload = { ...input, user_id: userId };
+        await offlineFirst(
+          async () => {
+            const { error } = await supabase.from("study_sessions").insert(payload);
+            if (error) throw error;
+          },
+          () => {
+            const queued = enqueue({ kind: "insert", table: "study_sessions", payload });
+            qc.setQueryData<StudySession[]>(["sessions"], (rows) => [
+              {
+                id: queued.id,
+                user_id: userId,
+                subject_id: input.subject_id ?? null,
+                chapter_id: input.chapter_id ?? null,
+                started_at: input.started_at ?? queued.at,
+                ended_at: input.ended_at ?? queued.at,
+                duration_seconds: input.duration_seconds ?? 0,
+                break_seconds: input.break_seconds ?? 0,
+                session_type: input.session_type ?? "stopwatch",
+                note: input.note ?? null,
+                created_at: queued.at,
+              },
+              ...(rows ?? []),
+            ]);
+          },
+        );
       }
     },
     onSuccess: invalidate,
@@ -356,10 +391,21 @@ export function useSaveSession() {
 
 export function useDeleteSession() {
   const invalidate = useInvalidate(["sessions"]);
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("study_sessions").delete().eq("id", id);
-      if (error) throw error;
+      await offlineFirst(
+        async () => {
+          const { error } = await supabase.from("study_sessions").delete().eq("id", id);
+          if (error) throw error;
+        },
+        () => {
+          if (!id.startsWith("local-")) enqueue({ kind: "delete", table: "study_sessions", rowId: id });
+          qc.setQueryData<StudySession[]>(["sessions"], (rows) =>
+            (rows ?? []).filter((row) => row.id !== id),
+          );
+        },
+      );
     },
     onSuccess: invalidate,
   });
