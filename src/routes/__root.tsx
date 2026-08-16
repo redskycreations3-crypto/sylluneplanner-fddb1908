@@ -136,6 +136,10 @@ function RootComponent() {
     applyTheme(stored);
   }, []);
 
+  useEffect(() => {
+    startQueryPersistence(queryClient);
+  }, [queryClient]);
+
   return (
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
