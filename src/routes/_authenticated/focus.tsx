@@ -154,8 +154,7 @@ function FocusPage() {
         const outcome = evaluateChapterProgress(target, totals, settings);
         if (outcome.change !== "none") {
           await saveChapter.mutateAsync({ id: target.id, status: outcome.status });
-          if (outcome.change === "completed") toast.success(outcome.message);
-          else toast(outcome.message);
+          toast(outcome.message);
         }
       }
     }
