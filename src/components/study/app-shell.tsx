@@ -1,8 +1,9 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { BarChart3, BookOpen, CalendarDays, Home, Timer } from "lucide-react";
+import { BarChart3, BookOpen, CalendarDays, CloudOff, Home, RefreshCw, Timer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTimer } from "@/lib/timer";
 import { formatClock } from "@/lib/study";
+import { useOnline, usePendingCount } from "@/lib/offline";
 
 const NAV = [
   { to: "/", label: "Home", icon: Home },
@@ -24,10 +25,29 @@ export function AppShell({
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { isActive, isRunning, elapsed, remaining, state } = useTimer();
   const showTimerPill = isActive && pathname !== "/focus";
+  const online = useOnline();
+  const pending = usePendingCount();
 
   return (
     <div className="min-h-screen bg-background pb-28">
       <div className="mx-auto w-full max-w-xl px-4 pt-6 sm:max-w-2xl">
+        {!online || pending > 0 ? (
+          <div
+            className={cn(
+              "mb-4 flex items-center gap-2 rounded-2xl px-4 py-2 text-xs font-medium",
+              online ? "bg-primary-soft text-primary" : "bg-muted text-muted-foreground",
+            )}
+          >
+            {online ? <RefreshCw className="h-4 w-4 animate-spin" /> : <CloudOff className="h-4 w-4" />}
+            <span>
+              {online
+                ? `Syncing ${pending} offline change${pending === 1 ? "" : "s"}…`
+                : pending > 0
+                  ? `Offline — ${pending} change${pending === 1 ? "" : "s"} saved on this device`
+                  : "Offline — your study tracking keeps working"}
+            </span>
+          </div>
+        ) : null}
         {header ?? (title ? <h1 className="mb-4 text-2xl font-bold">{title}</h1> : null)}
         {children}
       </div>
