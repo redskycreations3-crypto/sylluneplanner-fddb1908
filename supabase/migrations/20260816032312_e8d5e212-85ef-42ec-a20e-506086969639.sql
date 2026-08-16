@@ -1,0 +1,1 @@
+delete from public.chapters; delete from public.subjects; update public.profiles set seeded = false;
