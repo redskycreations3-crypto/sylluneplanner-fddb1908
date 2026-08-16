@@ -473,24 +473,43 @@ export function useDeleteSession() {
 
 export function useSaveTimetableEntry() {
   const invalidate = useInvalidate(["timetable"]);
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: Partial<TimetableEntry> & { id?: string; days?: number[] }) => {
-      const userId = await currentUserId();
+      const userId = isOnline() ? await currentUserId() : await offlineUserId();
       if (!userId) throw new Error("Not signed in");
       const { days, id, ...rest } = input;
       if (id) {
-        const { error } = await supabase.from("timetable_entries").update(rest).eq("id", id);
-        if (error) throw error;
+        await offlineFirst(
+          async () => {
+            const { error } = await supabase.from("timetable_entries").update(rest).eq("id", id);
+            if (error) throw error;
+          },
+          () => {
+            enqueue({ kind: "update", table: "timetable_entries", rowId: id, payload: rest });
+            qc.setQueryData<TimetableEntry[]>(["timetable"], (rows) =>
+              (rows ?? []).map((row) => (row.id === id ? { ...row, ...rest } : row)),
+            );
+          },
+        );
       } else {
         const targetDays = days && days.length > 0 ? days : [rest.day_of_week ?? 1];
-        const { error } = await supabase.from("timetable_entries").insert(
-          targetDays.map((day) => ({
-            ...rest,
-            day_of_week: day,
-            user_id: userId,
-          })),
+        const payloads = targetDays.map((day) => ({ ...rest, day_of_week: day, user_id: userId }));
+        await offlineFirst(
+          async () => {
+            const { error } = await supabase.from("timetable_entries").insert(payloads);
+            if (error) throw error;
+          },
+          () => {
+            for (const payload of payloads) {
+              const queued = enqueue({ kind: "insert", table: "timetable_entries", payload });
+              qc.setQueryData<TimetableEntry[]>(["timetable"], (rows) => [
+                ...(rows ?? []),
+                { ...payload, id: queued.id, created_at: queued.at } as TimetableEntry,
+              ]);
+            }
+          },
         );
-        if (error) throw error;
       }
     },
     onSuccess: invalidate,
@@ -499,10 +518,21 @@ export function useSaveTimetableEntry() {
 
 export function useDeleteTimetableEntry() {
   const invalidate = useInvalidate(["timetable"]);
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("timetable_entries").delete().eq("id", id);
-      if (error) throw error;
+      await offlineFirst(
+        async () => {
+          const { error } = await supabase.from("timetable_entries").delete().eq("id", id);
+          if (error) throw error;
+        },
+        () => {
+          enqueueDelete("timetable_entries", id);
+          qc.setQueryData<TimetableEntry[]>(["timetable"], (rows) =>
+            (rows ?? []).filter((row) => row.id !== id),
+          );
+        },
+      );
     },
     onSuccess: invalidate,
   });
