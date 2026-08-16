@@ -175,6 +175,7 @@ function SettingsPage() {
 
         <section>
           <SectionTitle>Notifications</SectionTitle>
+*** placeholder
           <div className="card-soft grid gap-3 p-4">
             {[
               { key: "notify_timetable", label: "Upcoming timetable sessions" },
