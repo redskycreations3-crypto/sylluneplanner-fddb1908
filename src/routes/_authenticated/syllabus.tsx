@@ -265,6 +265,13 @@ function SyllabusPage() {
               </div>
             );
           })}
+          <Button
+            variant="secondary"
+            className="rounded-2xl"
+            onClick={() => setSubjectDraft(newSubjectDraft())}
+          >
+            <Plus className="mr-1 h-4 w-4" /> Add Subject
+          </Button>
         </div>
       )}
 
