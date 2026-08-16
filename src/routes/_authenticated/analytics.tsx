@@ -351,7 +351,6 @@ function AnalyticsPage() {
         <section>
           <SectionTitle>By day of week</SectionTitle>
           <div className="card-soft p-4">
-          <div className="card-soft p-4">
             <div className="h-44">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={byWeekday} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
