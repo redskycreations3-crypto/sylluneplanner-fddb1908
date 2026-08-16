@@ -85,9 +85,9 @@ async function runBootstrap() {
   if (profile?.seeded && (count ?? 0) > 0) return;
 
   if ((count ?? 0) === 0) {
-    const { data: inserted } = await supabase
+    await supabase
       .from("subjects")
-      .insert(
+      .upsert(
         STARTER_SUBJECTS.map((starter, index) => ({
           user_id: user.id,
           name: starter.name,
@@ -95,8 +95,10 @@ async function runBootstrap() {
           color: starter.color,
           position: index,
         })),
-      )
-      .select();
+        { onConflict: "user_id,name", ignoreDuplicates: true },
+      );
+
+    const { data: inserted } = await supabase.from("subjects").select("*").eq("user_id", user.id);
 
     const chapters = (inserted ?? []).flatMap((subject) => {
       const starter = STARTER_SUBJECTS.find((s) => s.name === subject.name);
@@ -107,7 +109,11 @@ async function runBootstrap() {
         position: i,
       }));
     });
-    if (chapters.length > 0) await supabase.from("chapters").insert(chapters);
+    if (chapters.length > 0) {
+      await supabase
+        .from("chapters")
+        .upsert(chapters, { onConflict: "subject_id,name", ignoreDuplicates: true });
+    }
   }
   await supabase.from("profiles").update({ seeded: true }).eq("id", user.id);
 }
