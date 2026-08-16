@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis } from "recharts";
-import { Download, X } from "lucide-react";
+import { ChevronRight, Download, ListChecks, X } from "lucide-react";
 import { AppShell } from "@/components/study/app-shell";
 import { EmptyState, ProgressBar, SectionTitle } from "@/components/study/primitives";
 import { Button } from "@/components/ui/button";
