@@ -12,6 +12,36 @@ export const CHAPTER_STATUSES = [
   { value: "completed", label: "Completed", dot: "bg-emerald-400" },
 ] as const;
 
+/** A chapter's own completion %, kept separate from how long it was studied. */
+export function chapterPercent(chapter: Pick<Chapter, "status" | "progress">) {
+  if (chapter.status === "completed") return 100;
+  return Math.max(0, Math.min(100, chapter.progress ?? 0));
+}
+
+export function isRevised(chapter: Pick<Chapter, "revision">) {
+  return (chapter.revision ?? "none") !== "none";
+}
+
+export function statusLabel(status: string) {
+  return CHAPTER_STATUSES.find((s) => s.value === status)?.label ?? "Not started";
+}
+
+/**
+ * Keeps status and progress consistent: 100% always means completed, and a
+ * chapter that is not complete can never be marked as revised.
+ */
+export function normalizeChapter<T extends { status?: string; progress?: number; revision?: string }>(
+  input: T,
+): T {
+  const next = { ...input };
+  if (next.progress != null) next.progress = Math.max(0, Math.min(100, Math.round(next.progress)));
+  if (next.progress === 100) next.status = "completed";
+  if (next.status === "completed") next.progress = 100;
+  else if (next.status === "not_started" && next.progress == null) next.progress = 0;
+  if (next.status !== "completed") next.revision = "none";
+  return next;
+}
+
 export const REVISION_STAGES = [
   { value: "none", label: "Not revised" },
   { value: "r1", label: "Revision 1" },

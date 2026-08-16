@@ -2,12 +2,26 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Bell, Flame, Plus, Settings, Play } from "lucide-react";
 import { useState } from "react";
 import { AppShell } from "@/components/study/app-shell";
-import { EmptyState, ProgressRing, SectionTitle, SubjectIcon } from "@/components/study/primitives";
+import {
+  EmptyState,
+  ProgressBar,
+  ProgressRing,
+  SectionTitle,
+  SubjectIcon,
+} from "@/components/study/primitives";
 import {
   ManualSessionDialog,
   type ManualSessionTarget,
 } from "@/components/study/manual-session-dialog";
-import { useChapters, useProfile, useSessions, useSubjects } from "@/lib/data";
+import {
+  useChapters,
+  useDailyGoals,
+  useProfile,
+  useRecordTodayGoal,
+  useSessions,
+  useSubjects,
+} from "@/lib/data";
+import { DEFAULT_DAILY_GOAL_MINUTES, goalLabel, scoreForDate } from "@/lib/score";
 import { useTimer } from "@/lib/timer";
 import {
   chapterProgress,
@@ -45,6 +59,7 @@ function HomePage() {
   const { data: subjects = [] } = useSubjects();
   const { data: chapters = [] } = useChapters();
   const { data: sessions = [] } = useSessions();
+  const { data: dailyGoals = [] } = useDailyGoals();
   const timer = useTimer();
   const [manual, setManual] = useState<ManualSessionTarget>(null);
 
@@ -58,6 +73,10 @@ function HomePage() {
   const goalPercent = dailyGoal ? Math.min(100, Math.round((todaySeconds / dailyGoal) * 100)) : 0;
   const { current, totalDays } = streaks(sessions, profile?.streak_min_minutes ?? 20);
   const syllabus = chapterProgress(chapters);
+
+  const goalMinutes = profile?.daily_goal_minutes ?? DEFAULT_DAILY_GOAL_MINUTES;
+  useRecordTodayGoal(profile?.daily_goal_minutes);
+  const todayScore = scoreForDate(sessions, dailyGoals, today, goalMinutes);
 
   const dateLabel = today.toLocaleDateString(undefined, {
     weekday: "long",
@@ -105,8 +124,8 @@ function HomePage() {
         </header>
       }
     >
-      <div className="grid gap-4">
-        <div className="grid grid-cols-2 gap-4">
+      <div className="grid w-full min-w-0 gap-4">
+        <div className="grid w-full min-w-0 grid-cols-1 gap-4 min-[380px]:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <div className="card-soft p-4">
             <div className="flex items-center gap-2 text-muted-foreground">
               <Flame className="h-4 w-4 text-orange-400" />
@@ -125,6 +144,22 @@ function HomePage() {
               <p className="truncate text-[11px] text-muted-foreground">
                 of {formatDuration(dailyGoal)}
               </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="card-soft flex items-center gap-4 p-4">
+          <ProgressRing percent={todayScore.score} size={76} stroke={8}>
+            <span className="num text-sm font-bold">{todayScore.score}</span>
+          </ProgressRing>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-bold">Today&apos;s Score</p>
+            <p className="num text-lg font-bold">{todayScore.score} / 100</p>
+            <p className="num truncate text-[11px] text-muted-foreground">
+              {formatDuration(todayScore.seconds)} / {goalLabel(todayScore.goalMinutes)} studied
+            </p>
+            <div className="mt-2">
+              <ProgressBar percent={todayScore.score} />
             </div>
           </div>
         </div>
@@ -153,14 +188,14 @@ function HomePage() {
           </div>
         </Link>
 
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid w-full min-w-0 grid-cols-1 gap-3 min-[360px]:grid-cols-3">
           {[
             { label: "Today", value: todaySeconds },
             { label: "This week", value: weekSeconds },
             { label: "This month", value: monthSeconds },
           ].map((item) => (
-            <div key={item.label} className="card-soft p-3 text-center">
-              <p className="num text-base font-bold">{formatDuration(item.value)}</p>
+            <div key={item.label} className="card-soft min-w-0 p-3 text-center">
+              <p className="num truncate text-base font-bold">{formatDuration(item.value)}</p>
               <p className="text-[11px] text-muted-foreground">{item.label}</p>
             </div>
           ))}
@@ -168,14 +203,14 @@ function HomePage() {
 
         <Link
           to="/focus"
-          className="flex items-center justify-center gap-2 rounded-3xl bg-primary py-4 text-base font-bold text-primary-foreground shadow-lg"
+          className="flex w-full min-w-0 items-center justify-center gap-2 rounded-3xl bg-primary py-4 text-base font-bold text-primary-foreground shadow-lg"
         >
           <Play className="h-5 w-5" /> START STUDY
         </Link>
 
         <button
           onClick={() => setManual("new")}
-          className="card-soft flex items-center justify-center gap-2 py-3 text-sm font-semibold text-primary"
+          className="card-soft flex w-full min-w-0 items-center justify-center gap-2 py-3 text-sm font-semibold text-primary"
         >
           <Plus className="h-4 w-4" /> Add study time
         </button>
@@ -193,15 +228,18 @@ function HomePage() {
           {subjects.length === 0 ? (
             <EmptyState title="No subjects yet" hint="Add subjects to start tracking." />
           ) : (
-            <div className="flex gap-2 overflow-x-auto pb-1">
+            <div className="grid w-full min-w-0 grid-cols-2 gap-2">
               {subjects.map((subject) => (
                 <button
                   key={subject.id}
                   onClick={() => quickStart(subject.id)}
-                  className="card-soft flex shrink-0 items-center gap-2 px-3 py-2"
+                  className="card-soft flex min-h-12 min-w-0 items-center gap-2 px-3 py-2 text-left"
                 >
                   <SubjectIcon subject={subject} size="sm" />
-                  <span className="text-xs font-semibold" style={{ color: colorOf(subject).hex }}>
+                  <span
+                    className="min-w-0 truncate text-xs font-semibold"
+                    style={{ color: colorOf(subject).hex }}
+                  >
                     {subject.name}
                   </span>
                 </button>

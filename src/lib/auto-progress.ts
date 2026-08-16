@@ -41,36 +41,24 @@ export function chapterTotals(sessions: StudySession[], chapterId: string): Chap
 
 export type AutoProgressOutcome =
   | { change: "none" }
-  | { change: "in_progress"; status: "in_progress"; message: string }
-  | { change: "completed"; status: "completed"; message: string };
+  | { change: "studying"; status: "studying"; message: string };
 
-/** Decides whether a chapter should move forward after a focus session was logged. */
+/**
+ * Study time never completes a chapter — completion is the user's own progress
+ * percentage. The only automatic move is "not started" → "studying".
+ */
 export function evaluateChapterProgress(
   chapter: Chapter,
-  totals: ChapterTotals,
+  _totals: ChapterTotals,
   settings: AutoProgressSettings,
 ): AutoProgressOutcome {
   if (!settings.enabled || chapter.status === "completed") return { change: "none" };
 
-  const target = settings.rule === "sessions" ? settings.sessions : settings.minutes;
-  const value = settings.rule === "sessions" ? totals.sessions : totals.minutes;
-
-  if (settings.rule !== "manual" && target > 0 && value >= target) {
-    return {
-      change: "completed",
-      status: "completed",
-      message:
-        settings.rule === "sessions"
-          ? `${chapter.name} marked complete — ${totals.sessions} focus sessions done.`
-          : `${chapter.name} marked complete — ${totals.minutes}m studied.`,
-    };
-  }
-
   if (settings.startInProgress && chapter.status === "not_started") {
     return {
-      change: "in_progress",
-      status: "in_progress",
-      message: `${chapter.name} moved to In progress.`,
+      change: "studying",
+      status: "studying",
+      message: `${chapter.name} moved to Studying.`,
     };
   }
 

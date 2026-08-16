@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { ChevronDown, ChevronUp, Plus, Search, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/study/app-shell";
 import { ProgressBar, SubjectIcon } from "@/components/study/primitives";
+import { ChapterRow } from "@/components/study/chapter-row";
 import { ConfirmDialog } from "@/components/study/confirm-dialog";
 import { SubjectDialog, type SubjectDraft } from "@/components/study/subject-dialog";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 import {
   useChapters,
   useDeleteChapter,
@@ -75,6 +77,7 @@ function SyllabusPage() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("all");
   const [open, setOpen] = useState<string | null>(null);
+  const [openChapter, setOpenChapter] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [subjectDraft, setSubjectDraft] = useState<SubjectDraft | null>(null);
   const [chapterToDelete, setChapterToDelete] = useState<Chapter | null>(null);
@@ -193,7 +196,7 @@ function SyllabusPage() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-bold">{subject.name}</p>
                     <p className="num text-[11px] text-muted-foreground">
-                      {stats.completed} / {stats.total} chapters
+                      {stats.completed} / {stats.total} chapters · {stats.percent}%
                     </p>
                     <div className="mt-2">
                       <ProgressBar percent={stats.percent} color={colorOf(subject).hex} />
@@ -218,37 +221,19 @@ function SyllabusPage() {
                         <p className="text-xs font-semibold">No chapters added yet.</p>
                       </div>
                     ) : (
-                      list.map((chapter, index) => {
-                        const meta = CHAPTER_STATUSES.find((s) => s.value === chapter.status);
-                        const revision = REVISION_STAGES.find((r) => r.value === chapter.revision);
-                        return (
-                          <div key={chapter.id} className="flex items-center gap-2 rounded-2xl bg-muted/50 px-3 py-2">
-                            <span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", meta?.dot)} />
-                            <button
-                              className="min-w-0 flex-1 text-left"
-                              onClick={() => setDraft(chapter)}
-                            >
-                              <p className="truncate text-sm font-medium">{chapter.name}</p>
-                              <p className="truncate text-[11px] text-muted-foreground">
-                                {meta?.label} · {revision?.label}
-                                {chapter.target_date ? ` · due ${chapter.target_date}` : ""}
-                              </p>
-                            </button>
-                            <button onClick={() => move(list, index, -1)} aria-label="Move up">
-                              <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                            </button>
-                            <button onClick={() => move(list, index, 1)} aria-label="Move down">
-                              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                            </button>
-                            <button
-                              onClick={() => setChapterToDelete(chapter)}
-                              aria-label={`Delete ${chapter.name}`}
-                            >
-                              <Trash2 className="h-4 w-4 text-muted-foreground" />
-                            </button>
-                          </div>
-                        );
-                      })
+                      list.map((chapter, index) => (
+                        <ChapterRow
+                          key={chapter.id}
+                          chapter={chapter}
+                          color={colorOf(subject).hex}
+                          expanded={openChapter === chapter.id}
+                          onToggle={() => setOpenChapter(openChapter === chapter.id ? null : chapter.id)}
+                          onPatch={(patch) => save.mutate({ id: chapter.id, ...patch })}
+                          onEdit={() => setDraft(chapter)}
+                          onDelete={() => setChapterToDelete(chapter)}
+                          onMove={(delta) => move(list, index, delta)}
+                        />
+                      ))
                     )}
                     <Button
                       variant="ghost"
@@ -331,7 +316,11 @@ function SyllabusPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="grid gap-1.5">
                   <Label>Revision</Label>
-                  <Select value={draft.revision ?? "none"} onValueChange={(v) => setDraft({ ...draft, revision: v })}>
+                  <Select
+                    value={draft.revision ?? "none"}
+                    disabled={draft.status !== "completed"}
+                    onValueChange={(v) => setDraft({ ...draft, revision: v })}
+                  >
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {REVISION_STAGES.map((r) => (
@@ -348,6 +337,33 @@ function SyllabusPage() {
                     onChange={(e) => setDraft({ ...draft, target_date: e.target.value })}
                   />
                 </div>
+              </div>
+              <div className="grid gap-1.5">
+                <div className="flex items-center justify-between">
+                  <Label>Progress</Label>
+                  <span className="num text-xs font-bold">
+                    {draft.status === "completed" ? 100 : (draft.progress ?? 0)}%
+                  </span>
+                </div>
+                <Slider
+                  value={[draft.status === "completed" ? 100 : (draft.progress ?? 0)]}
+                  min={0}
+                  max={100}
+                  step={5}
+                  className="py-2"
+                  onValueChange={(v) => {
+                    const next = v[0] ?? 0;
+                    setDraft({
+                      ...draft,
+                      progress: next,
+                      status: next === 100 ? "completed" : next > 0 ? "studying" : "not_started",
+                      revision: next === 100 ? (draft.revision ?? "none") : "none",
+                    });
+                  }}
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Reaching 100% marks the chapter as Completed.
+                </p>
               </div>
               <div className="grid gap-1.5">
                 <Label>Notes</Label>
@@ -382,6 +398,7 @@ function SyllabusPage() {
                   subject_id: draft.subject_id,
                   name: draft.name?.trim() || "New chapter",
                   status: draft.status ?? "not_started",
+                  progress: draft.status === "completed" ? 100 : (draft.progress ?? 0),
                   revision: draft.revision ?? "none",
                   priority: draft.priority ?? "medium",
                   target_date: draft.target_date || null,

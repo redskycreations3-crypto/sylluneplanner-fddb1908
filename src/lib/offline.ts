@@ -18,6 +18,7 @@ export type OutboxTable =
   | "chapters"
   | "subjects"
   | "timetable_entries"
+  | "daily_goals"
   | "profiles";
 
 const KEY = "studyflow.outbox.v1";
@@ -137,6 +138,18 @@ export async function flushOutbox(): Promise<{ synced: number; resolutions: Sync
         continue;
       }
       if (op.kind === "insert") {
+        if (op.table === "daily_goals") {
+          // One row per day: replay as an upsert so re-syncs never collide.
+          const { data, error } = await supabase
+            .from("daily_goals")
+            .upsert(op.payload as never, { onConflict: "user_id,day" })
+            .select("id")
+            .single();
+          if (error) throw error;
+          if (op.localId && data?.id) idMap.set(op.localId, data.id as string);
+          synced += 1;
+          continue;
+        }
         const { data, error } = await supabase
           .from(op.table)
           .insert(op.payload as never)

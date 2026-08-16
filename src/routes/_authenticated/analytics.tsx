@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useChapters, useProfile, useSessions, useSubjects, useTimetable } from "@/lib/data";
 import { downloadStudyReport } from "@/lib/report";
+import { toast } from "sonner";
 import {
   DAYS,
   chapterProgress,
@@ -162,9 +163,24 @@ function AnalyticsPage() {
           <Button
             size="sm"
             className="rounded-2xl"
-            onClick={() =>
-              downloadStudyReport({ profile: profile ?? null, subjects, chapters, sessions, timetable })
-            }
+            onClick={async () => {
+              try {
+                const result = await downloadStudyReport({
+                  profile: profile ?? null,
+                  subjects,
+                  chapters,
+                  sessions,
+                  timetable,
+                });
+                toast.success(
+                  result.method === "shared"
+                    ? "Choose where to save your tracker PDF"
+                    : "Tracker record PDF saved",
+                );
+              } catch {
+                toast.error("Could not save the PDF on this device");
+              }
+            }}
           >
             <Download className="mr-1 h-4 w-4" /> PDF
           </Button>
