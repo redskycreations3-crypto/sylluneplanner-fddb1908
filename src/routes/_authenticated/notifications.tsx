@@ -238,16 +238,16 @@ function NotificationsPage() {
                     </button>
                   </div>
                   <div className="flex flex-wrap gap-1">
-                    {DAYS.map((day, index) => {
-                      const active = reminder.days.includes(index);
+                    {DAYS.map((day) => {
+                      const active = reminder.days.includes(day.value);
                       return (
                         <button
-                          key={index}
+                          key={day.value}
                           onClick={() =>
                             updateReminder(reminder.id, {
                               days: active
-                                ? reminder.days.filter((d) => d !== index)
-                                : [...reminder.days, index].sort(),
+                                ? reminder.days.filter((d) => d !== day.value)
+                                : [...reminder.days, day.value].sort(),
                             })
                           }
                           className={cn(
@@ -255,7 +255,7 @@ function NotificationsPage() {
                             active ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground",
                           )}
                         >
-                          {typeof day === "string" ? day.slice(0, 3) : String(index)}
+                          {day.label}
                         </button>
                       );
                     })}
