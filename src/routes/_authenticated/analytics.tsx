@@ -350,7 +350,7 @@ function AnalyticsPage() {
 
         <section>
           <SectionTitle>By day of week</SectionTitle>
-        </section>
+          <div className="card-soft p-4">
           <div className="card-soft p-4">
             <div className="h-44">
               <ResponsiveContainer width="100%" height="100%">
