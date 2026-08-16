@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Bell, Flame, Pencil, Plus, Settings, Play } from "lucide-react";
+import { Bell, Flame, Pencil, Plus, Settings, Play, Target } from "lucide-react";
 import { useState } from "react";
 import { AppShell } from "@/components/study/app-shell";
 import {
@@ -223,6 +223,8 @@ function HomePage() {
         >
           <Play className="h-5 w-5" /> START STUDY
         </Link>
+
+        {null}
 
         <button
           onClick={() => setManual("new")}
