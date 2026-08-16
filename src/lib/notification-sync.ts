@@ -77,6 +77,7 @@ export function useNotificationScheduler() {
         const day = (entry as { day_of_week?: number | null }).day_of_week;
         const time = (entry as { start_time?: string | null }).start_time;
         if (typeof day !== "number" || !time) continue;
+        if ((entry as { reminder?: boolean }).reminder === false) continue;
         const at = nextOccurrence(time.slice(0, 5), day);
         at.setMinutes(at.getMinutes() - prefs.plannerLeadMinutes);
         const label = (entry as { title?: string | null }).title ?? "your planned session";

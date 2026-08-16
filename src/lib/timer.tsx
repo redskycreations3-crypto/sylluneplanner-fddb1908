@@ -1,3 +1,4 @@
+import { IDS, cancelIds, scheduleAt } from "./notifications";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 
 export type TimerMode = "stopwatch" | "countdown" | "pomodoro";
@@ -207,6 +208,24 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
       chapterId: prev.chapterId,
     }));
   }, []);
+
+  // Schedule the native alert for the end of the current pomodoro phase so it
+  // fires even when the app is backgrounded or the screen is locked.
+  useEffect(() => {
+    const { mode, phase, runningSince, targetSeconds, accumulated } = state;
+    if (mode !== "pomodoro" || !runningSince) {
+      void cancelIds([IDS.pomodoroFocus, IDS.pomodoroBreak]);
+      return;
+    }
+    const endsAt = new Date(runningSince + Math.max(0, targetSeconds - accumulated) * 1000);
+    if (phase === "focus") {
+      void cancelIds([IDS.pomodoroBreak]);
+      void scheduleAt("pomodoro_done", IDS.pomodoroFocus, endsAt, "Pomodoro complete 🎉", "Time for a break.");
+    } else {
+      void cancelIds([IDS.pomodoroFocus]);
+      void scheduleAt("break_done", IDS.pomodoroBreak, endsAt, "Break finished", "Ready to focus again?");
+    }
+  }, [state.mode, state.phase, state.runningSince, state.targetSeconds, state.accumulated]);
 
   // Countdown finishes → pause. Pomodoro finishes a phase → roll into the next.
   useEffect(() => {
