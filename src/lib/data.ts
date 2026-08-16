@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Chapter, Profile, StudySession, Subject, TimetableEntry } from "./study";
-import { enqueue, flushOutbox, isOnline, offlineUserId, readOutbox } from "./offline";
+import { enqueue, enqueueDelete, flushOutbox, isOnline, offlineUserId, readOutbox } from "./offline";
 import { useEffect } from "react";
 import { toast } from "sonner";
 
@@ -177,12 +177,21 @@ function useInvalidate(keys: string[]) {
 
 export function useSaveProfile() {
   const invalidate = useInvalidate(["profile"]);
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: async (patch: Partial<Profile>) => {
-      const userId = await currentUserId();
+      const userId = isOnline() ? await currentUserId() : await offlineUserId();
       if (!userId) throw new Error("Not signed in");
-      const { error } = await supabase.from("profiles").update(patch).eq("id", userId);
-      if (error) throw error;
+      await offlineFirst(
+        async () => {
+          const { error } = await supabase.from("profiles").update(patch).eq("id", userId);
+          if (error) throw error;
+        },
+        () => {
+          enqueue({ kind: "update", table: "profiles", rowId: userId, payload: patch });
+          qc.setQueryData<Profile | null>(["profile"], (row) => (row ? { ...row, ...patch } : row));
+        },
+      );
     },
     onSuccess: invalidate,
   });
@@ -190,19 +199,50 @@ export function useSaveProfile() {
 
 export function useSaveSubject() {
   const invalidate = useInvalidate(["subjects"]);
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: Partial<Subject> & { id?: string }) => {
-      const userId = await currentUserId();
+      const userId = isOnline() ? await currentUserId() : await offlineUserId();
       if (!userId) throw new Error("Not signed in");
       if (input.id) {
         const { id, ...patch } = input;
-        const { error } = await supabase.from("subjects").update(patch).eq("id", id);
-        if (error) throw error;
+        await offlineFirst(
+          async () => {
+            const { error } = await supabase.from("subjects").update(patch).eq("id", id);
+            if (error) throw error;
+          },
+          () => {
+            enqueue({ kind: "update", table: "subjects", rowId: id, payload: patch });
+            qc.setQueryData<Subject[]>(["subjects"], (rows) =>
+              (rows ?? []).map((row) => (row.id === id ? { ...row, ...patch } : row)),
+            );
+          },
+        );
       } else {
-        const { error } = await supabase
-          .from("subjects")
-          .insert({ ...input, name: input.name ?? "New subject", user_id: userId });
-        if (error) throw error;
+        const payload = { ...input, name: input.name ?? "New subject", user_id: userId };
+        await offlineFirst(
+          async () => {
+            const { error } = await supabase.from("subjects").insert(payload);
+            if (error) throw error;
+          },
+          () => {
+            const queued = enqueue({ kind: "insert", table: "subjects", payload });
+            qc.setQueryData<Subject[]>(["subjects"], (rows) => [
+              ...(rows ?? []),
+              {
+                id: queued.id,
+                user_id: userId,
+                name: payload.name,
+                icon: input.icon ?? "book",
+                color: input.color ?? "lavender",
+                daily_goal_minutes: input.daily_goal_minutes ?? 0,
+                weekly_goal_minutes: input.weekly_goal_minutes ?? 0,
+                position: input.position ?? (rows?.length ?? 0),
+                created_at: queued.at,
+              } as Subject,
+            ]);
+          },
+        );
       }
     },
     onSuccess: invalidate,
@@ -211,10 +251,22 @@ export function useSaveSubject() {
 
 export function useDeleteSubject() {
   const invalidate = useInvalidate(["subjects", "chapters", "sessions", "timetable"]);
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("subjects").delete().eq("id", id);
-      if (error) throw error;
+      await offlineFirst(
+        async () => {
+          const { error } = await supabase.from("subjects").delete().eq("id", id);
+          if (error) throw error;
+        },
+        () => {
+          enqueueDelete("subjects", id);
+          qc.setQueryData<Subject[]>(["subjects"], (rows) => (rows ?? []).filter((row) => row.id !== id));
+          qc.setQueryData<Chapter[]>(["chapters"], (rows) =>
+            (rows ?? []).filter((row) => row.subject_id !== id),
+          );
+        },
+      );
     },
     onSuccess: invalidate,
   });
