@@ -8,6 +8,7 @@ import {
   ManualSessionDialog,
   type ManualSessionTarget,
 } from "@/components/study/manual-session-dialog";
+import { SessionHistory } from "@/components/study/session-history";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
