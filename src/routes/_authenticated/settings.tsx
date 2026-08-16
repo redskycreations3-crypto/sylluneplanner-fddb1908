@@ -175,7 +175,12 @@ function SettingsPage() {
 
         <section>
           <SectionTitle>Notifications</SectionTitle>
-*** placeholder
+        </section>
+
+        <AutoProgressSettings profile={profile ?? null} patch={patch} />
+
+        <section>
+          <SectionTitle>Notifications</SectionTitle>
           <div className="card-soft grid gap-3 p-4">
             {[
               { key: "notify_timetable", label: "Upcoming timetable sessions" },
