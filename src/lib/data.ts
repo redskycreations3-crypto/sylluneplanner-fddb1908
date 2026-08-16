@@ -1,6 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Chapter, Profile, StudySession, Subject, TimetableEntry } from "./study";
+import { dayKey } from "./study";
+import type { DailyGoal } from "./score";
+import { DEFAULT_DAILY_GOAL_MINUTES } from "./score";
 import { enqueue, enqueueDelete, flushOutbox, isOnline, offlineUserId, readOutbox } from "./offline";
 import { useEffect } from "react";
 import { toast } from "sonner";
@@ -166,6 +169,71 @@ export function useTimetable() {
       return data ?? [];
     },
   });
+}
+
+export function useDailyGoals() {
+  return useQuery({
+    queryKey: ["daily-goals"],
+    queryFn: async (): Promise<DailyGoal[]> => {
+      const { data, error } = await supabase
+        .from("daily_goals")
+        .select("*")
+        .order("day", { ascending: false })
+        .limit(400);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+/**
+ * Stamps today's goal into history so changing the goal later never rewrites
+ * the score of a day that is already finished. Works offline via the outbox.
+ */
+export function useRecordTodayGoal(goalMinutes: number | undefined) {
+  const qc = useQueryClient();
+  useEffect(() => {
+    if (!goalMinutes) return;
+    let cancelled = false;
+    const run = async () => {
+      const userId = isOnline() ? await currentUserId() : await offlineUserId();
+      if (!userId || cancelled) return;
+      const today = dayKey(new Date());
+      const cached = qc.getQueryData<DailyGoal[]>(["daily-goals"]) ?? [];
+      const existing = cached.find((row) => row.day === today);
+      if (existing?.goal_minutes === goalMinutes) return;
+      const payload = { user_id: userId, day: today, goal_minutes: goalMinutes };
+      const writeCache = (id: string, created_at: string) =>
+        qc.setQueryData<DailyGoal[]>(["daily-goals"], (rows) => [
+          { ...payload, id, created_at } as DailyGoal,
+          ...(rows ?? []).filter((row) => row.day !== today),
+        ]);
+      await offlineFirst(
+        async () => {
+          const { data, error } = await supabase
+            .from("daily_goals")
+            .upsert(payload, { onConflict: "user_id,day" })
+            .select("*")
+            .single();
+          if (error) throw error;
+          if (data) writeCache(data.id, data.created_at);
+        },
+        () => {
+          const queued = enqueue({ kind: "insert", table: "daily_goals", payload });
+          writeCache(queued.id, queued.at);
+        },
+      );
+    };
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [goalMinutes, qc]);
+}
+
+export function useDailyGoalMinutes() {
+  const { data: profile } = useProfile();
+  return profile?.daily_goal_minutes ?? DEFAULT_DAILY_GOAL_MINUTES;
 }
 
 /* ---------- mutations ---------- */
