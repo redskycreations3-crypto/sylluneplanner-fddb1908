@@ -43,6 +43,42 @@ async function currentUserId() {
   return data.user?.id ?? null;
 }
 
+/** Keeps working with no connection: queues the write and replays it on reconnect. */
+function offlineFirst<T>(run: () => Promise<T>, queue: () => void) {
+  if (!isOnline()) {
+    queue();
+    return Promise.resolve(undefined as T);
+  }
+  return run().catch((error) => {
+    if (!isOnline()) {
+      queue();
+      return undefined as T;
+    }
+    throw error;
+  });
+}
+
+/** Replays queued offline changes whenever the connection comes back. */
+export function useOutboxSync() {
+  const qc = useQueryClient();
+  useEffect(() => {
+    let cancelled = false;
+    const sync = async () => {
+      if (readOutbox().length === 0) return;
+      const synced = await flushOutbox();
+      if (synced > 0 && !cancelled) qc.invalidateQueries();
+    };
+    sync();
+    window.addEventListener("online", sync);
+    const id = window.setInterval(sync, 30000);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("online", sync);
+      window.clearInterval(id);
+    };
+  }, [qc]);
+}
+
 let bootstrapPromise: Promise<void> | null = null;
 
 export function bootstrapAccount() {
