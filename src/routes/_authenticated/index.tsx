@@ -124,8 +124,8 @@ function HomePage() {
         </header>
       }
     >
-      <div className="grid gap-4">
-        <div className="grid grid-cols-2 gap-4">
+      <div className="grid w-full min-w-0 gap-4">
+        <div className="grid w-full min-w-0 grid-cols-1 gap-4 min-[380px]:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <div className="card-soft p-4">
             <div className="flex items-center gap-2 text-muted-foreground">
               <Flame className="h-4 w-4 text-orange-400" />
@@ -188,14 +188,14 @@ function HomePage() {
           </div>
         </Link>
 
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid w-full min-w-0 grid-cols-1 gap-3 min-[360px]:grid-cols-3">
           {[
             { label: "Today", value: todaySeconds },
             { label: "This week", value: weekSeconds },
             { label: "This month", value: monthSeconds },
           ].map((item) => (
-            <div key={item.label} className="card-soft p-3 text-center">
-              <p className="num text-base font-bold">{formatDuration(item.value)}</p>
+            <div key={item.label} className="card-soft min-w-0 p-3 text-center">
+              <p className="num truncate text-base font-bold">{formatDuration(item.value)}</p>
               <p className="text-[11px] text-muted-foreground">{item.label}</p>
             </div>
           ))}
@@ -203,14 +203,14 @@ function HomePage() {
 
         <Link
           to="/focus"
-          className="flex items-center justify-center gap-2 rounded-3xl bg-primary py-4 text-base font-bold text-primary-foreground shadow-lg"
+          className="flex w-full min-w-0 items-center justify-center gap-2 rounded-3xl bg-primary py-4 text-base font-bold text-primary-foreground shadow-lg"
         >
           <Play className="h-5 w-5" /> START STUDY
         </Link>
 
         <button
           onClick={() => setManual("new")}
-          className="card-soft flex items-center justify-center gap-2 py-3 text-sm font-semibold text-primary"
+          className="card-soft flex w-full min-w-0 items-center justify-center gap-2 py-3 text-sm font-semibold text-primary"
         >
           <Plus className="h-4 w-4" /> Add study time
         </button>
@@ -228,15 +228,18 @@ function HomePage() {
           {subjects.length === 0 ? (
             <EmptyState title="No subjects yet" hint="Add subjects to start tracking." />
           ) : (
-            <div className="flex gap-2 overflow-x-auto pb-1">
+            <div className="grid w-full min-w-0 grid-cols-2 gap-2">
               {subjects.map((subject) => (
                 <button
                   key={subject.id}
                   onClick={() => quickStart(subject.id)}
-                  className="card-soft flex shrink-0 items-center gap-2 px-3 py-2"
+                  className="card-soft flex min-h-12 min-w-0 items-center gap-2 px-3 py-2 text-left"
                 >
                   <SubjectIcon subject={subject} size="sm" />
-                  <span className="text-xs font-semibold" style={{ color: colorOf(subject).hex }}>
+                  <span
+                    className="min-w-0 truncate text-xs font-semibold"
+                    style={{ color: colorOf(subject).hex }}
+                  >
                     {subject.name}
                   </span>
                 </button>
