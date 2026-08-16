@@ -349,6 +349,37 @@ function AnalyticsPage() {
         </section>
 
         <section>
+          <SectionTitle
+            action={
+              <Link to="/sessions" className="text-xs font-semibold text-primary">
+                View all
+              </Link>
+            }
+          >
+            Session log
+          </SectionTitle>
+          <Link
+            to="/sessions"
+            className="card-soft flex items-center gap-4 p-5"
+            aria-label="Open the full session log"
+          >
+            <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-primary-soft text-primary">
+              <ListChecks className="h-6 w-6" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold">All study sessions</p>
+              <p className="num text-xs text-muted-foreground">
+                {scoped.length} sessions · {formatDuration(total)} in this range
+              </p>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Filter by source or subject, edit notes, delete entries.
+              </p>
+            </div>
+            <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
+          </Link>
+        </section>
+
+        <section>
           <SectionTitle>By day of week</SectionTitle>
           <div className="card-soft p-4">
             <div className="h-44">
