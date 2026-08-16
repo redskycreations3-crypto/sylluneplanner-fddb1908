@@ -1,9 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/study/app-shell";
 import { EmptyState, SubjectIcon } from "@/components/study/primitives";
+import {
+  ManualSessionDialog,
+  type ManualSessionTarget,
+} from "@/components/study/manual-session-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useChapters, useDeleteSession, useSaveSession, useSessions, useSubjects } from "@/lib/data";
@@ -29,12 +33,19 @@ function SessionsPage() {
   const deleteSession = useDeleteSession();
   const [editing, setEditing] = useState<string | null>(null);
   const [note, setNote] = useState("");
+  const [manual, setManual] = useState<ManualSessionTarget>(null);
 
   return (
     <AppShell title="Sessions">
       <div className="grid gap-3">
+        <Button className="rounded-2xl" onClick={() => setManual("new")}>
+          <Plus className="mr-1 h-4 w-4" /> Add study time
+        </Button>
         {sessions.length === 0 ? (
-          <EmptyState title="No sessions yet" hint="Finish a focus session to see it here." />
+          <EmptyState
+            title="No sessions yet"
+            hint="Finish a focus session, or add study time you did away from the app."
+          />
         ) : (
           sessions.map((session) => {
             const subject = subjects.find((s) => s.id === session.subject_id) ?? null;
@@ -54,14 +65,23 @@ function SessionsPage() {
                       {start.toLocaleDateString()} · {start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                       {" – "}
                       {end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      {session.source === "manual" ? " · added manually" : ""}
                     </p>
                   </div>
                   <span className="num text-sm font-bold">{formatDuration(session.duration_seconds)}</span>
+                  <button
+                    onClick={() => setManual(session)}
+                    aria-label="Edit session"
+                    className="grid h-8 w-8 place-items-center rounded-xl bg-muted text-muted-foreground"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
                   <button
                     onClick={async () => {
                       await deleteSession.mutateAsync(session.id);
                       toast.success("Session deleted");
                     }}
+                    aria-label="Delete session"
                     className="grid h-8 w-8 place-items-center rounded-xl bg-muted text-muted-foreground"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -102,6 +122,7 @@ function SessionsPage() {
           })
         )}
       </div>
+      <ManualSessionDialog target={manual} onClose={() => setManual(null)} />
     </AppShell>
   );
 }
