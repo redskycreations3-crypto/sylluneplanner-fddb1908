@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Bell, Flame, Plus, Settings, Play } from "lucide-react";
+import { Bell, Flame, Pencil, Plus, Settings, Play } from "lucide-react";
 import { useState } from "react";
 import { AppShell } from "@/components/study/app-shell";
 import {
@@ -13,6 +13,8 @@ import {
   ManualSessionDialog,
   type ManualSessionTarget,
 } from "@/components/study/manual-session-dialog";
+import { DailyGoalDialog } from "@/components/study/daily-goal-dialog";
+import { SessionHistory } from "@/components/study/session-history";
 import {
   useChapters,
   useDailyGoals,
@@ -62,6 +64,7 @@ function HomePage() {
   const { data: dailyGoals = [] } = useDailyGoals();
   const timer = useTimer();
   const [manual, setManual] = useState<ManualSessionTarget>(null);
+  const [goalOpen, setGoalOpen] = useState(false);
 
   const today = new Date();
   const todaySeconds = sessionSeconds(sessionsOn(sessions, today));
@@ -69,14 +72,15 @@ function HomePage() {
   const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
   const monthSeconds = sessionSeconds(sessionsSince(sessions, monthStart));
 
-  const dailyGoal = (profile?.daily_goal_minutes ?? 240) * 60;
-  const goalPercent = dailyGoal ? Math.min(100, Math.round((todaySeconds / dailyGoal) * 100)) : 0;
   const { current, totalDays } = streaks(sessions, profile?.streak_min_minutes ?? 20);
   const syllabus = chapterProgress(chapters);
 
   const goalMinutes = profile?.daily_goal_minutes ?? DEFAULT_DAILY_GOAL_MINUTES;
   useRecordTodayGoal(profile?.daily_goal_minutes);
   const todayScore = scoreForDate(sessions, dailyGoals, today, goalMinutes);
+  // Both cards read the exact same total and the exact same goal.
+  const dailyGoal = todayScore.goalMinutes * 60;
+  const goalPercent = todayScore.score;
 
   const dateLabel = today.toLocaleDateString(undefined, {
     weekday: "long",
@@ -134,18 +138,24 @@ function HomePage() {
             <p className="num mt-2 text-3xl font-bold">{current}</p>
             <p className="text-xs text-muted-foreground">{totalDays} study days total</p>
           </div>
-          <div className="card-soft flex items-center gap-3 p-4">
+          <button
+            onClick={() => setGoalOpen(true)}
+            className="card-soft flex items-center gap-3 p-4 text-left"
+            aria-label="Edit daily study goal"
+          >
             <ProgressRing percent={goalPercent} size={68} stroke={7}>
               <span className="num text-sm font-bold">{goalPercent}%</span>
             </ProgressRing>
-            <div className="min-w-0">
-              <p className="text-xs font-medium text-muted-foreground">Today</p>
-              <p className="num truncate text-lg font-bold">{formatDuration(todaySeconds)}</p>
+            <div className="min-w-0 flex-1">
+              <p className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+                Today <Pencil className="h-3 w-3" />
+              </p>
+              <p className="num truncate text-lg font-bold">{formatDuration(todayScore.seconds)}</p>
               <p className="truncate text-[11px] text-muted-foreground">
                 of {formatDuration(dailyGoal)}
               </p>
             </div>
-          </div>
+          </button>
         </div>
 
         <div className="card-soft flex items-center gap-4 p-4">
@@ -158,6 +168,12 @@ function HomePage() {
             <p className="num truncate text-[11px] text-muted-foreground">
               {formatDuration(todayScore.seconds)} / {goalLabel(todayScore.goalMinutes)} studied
             </p>
+            <button
+              onClick={() => setGoalOpen(true)}
+              className="mt-1 self-start text-[11px] font-semibold text-primary"
+            >
+              Edit goal
+            </button>
             <div className="mt-2">
               <ProgressBar percent={todayScore.score} />
             </div>
@@ -215,6 +231,8 @@ function HomePage() {
           <Plus className="h-4 w-4" /> Add study time
         </button>
 
+        <SessionHistory />
+
         <section>
           <SectionTitle
             action={
@@ -249,6 +267,7 @@ function HomePage() {
         </section>
       </div>
       <ManualSessionDialog target={manual} onClose={() => setManual(null)} />
+      <DailyGoalDialog open={goalOpen} goalMinutes={goalMinutes} onClose={() => setGoalOpen(false)} />
     </AppShell>
   );
 }
