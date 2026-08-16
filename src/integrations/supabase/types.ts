@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          kind: string
           name: string
           notes: string | null
           position: number
@@ -31,6 +32,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          kind?: string
           name: string
           notes?: string | null
           position?: number
@@ -44,6 +46,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          kind?: string
           name?: string
           notes?: string | null
           position?: number
@@ -72,6 +75,8 @@ export type Database = {
           auto_progress_rule: string
           auto_start_in_progress: boolean
           avatar_emoji: string
+          avatar_url: string | null
+          bio: string | null
           break_minutes: number
           created_at: string
           daily_goal_minutes: number
@@ -83,6 +88,11 @@ export type Database = {
           notify_revision: boolean
           notify_streak: boolean
           notify_timetable: boolean
+          pomodoro_focus_minutes: number
+          pomodoro_long_break_minutes: number
+          pomodoro_presets: Json
+          pomodoro_sessions_before_long: number
+          pomodoro_short_break_minutes: number
           seeded: boolean
           streak_min_minutes: number
           theme: string
@@ -96,6 +106,8 @@ export type Database = {
           auto_progress_rule?: string
           auto_start_in_progress?: boolean
           avatar_emoji?: string
+          avatar_url?: string | null
+          bio?: string | null
           break_minutes?: number
           created_at?: string
           daily_goal_minutes?: number
@@ -107,6 +119,11 @@ export type Database = {
           notify_revision?: boolean
           notify_streak?: boolean
           notify_timetable?: boolean
+          pomodoro_focus_minutes?: number
+          pomodoro_long_break_minutes?: number
+          pomodoro_presets?: Json
+          pomodoro_sessions_before_long?: number
+          pomodoro_short_break_minutes?: number
           seeded?: boolean
           streak_min_minutes?: number
           theme?: string
@@ -120,6 +137,8 @@ export type Database = {
           auto_progress_rule?: string
           auto_start_in_progress?: boolean
           avatar_emoji?: string
+          avatar_url?: string | null
+          bio?: string | null
           break_minutes?: number
           created_at?: string
           daily_goal_minutes?: number
@@ -131,6 +150,11 @@ export type Database = {
           notify_revision?: boolean
           notify_streak?: boolean
           notify_timetable?: boolean
+          pomodoro_focus_minutes?: number
+          pomodoro_long_break_minutes?: number
+          pomodoro_presets?: Json
+          pomodoro_sessions_before_long?: number
+          pomodoro_short_break_minutes?: number
           seeded?: boolean
           streak_min_minutes?: number
           theme?: string
@@ -149,6 +173,7 @@ export type Database = {
           id: string
           note: string | null
           session_type: string
+          source: string
           started_at: string
           subject_id: string | null
           user_id: string
@@ -162,6 +187,7 @@ export type Database = {
           id?: string
           note?: string | null
           session_type?: string
+          source?: string
           started_at?: string
           subject_id?: string | null
           user_id: string
@@ -175,6 +201,7 @@ export type Database = {
           id?: string
           note?: string | null
           session_type?: string
+          source?: string
           started_at?: string
           subject_id?: string | null
           user_id?: string

@@ -28,9 +28,24 @@ export function AppShell({
   const online = useOnline();
   const pending = usePendingCount();
 
+  const syncLabel = !online ? "Offline" : pending > 0 ? "Syncing" : "Synced";
+  const syncDot = !online ? "bg-muted-foreground/50" : pending > 0 ? "bg-amber-400" : "bg-emerald-400";
+
   return (
-    <div className="min-h-screen bg-background pb-28">
-      <div className="mx-auto w-full max-w-xl px-4 pt-6 sm:max-w-2xl">
+    <div
+      className="min-h-screen bg-background pb-28"
+      style={{ paddingBottom: "calc(7rem + env(safe-area-inset-bottom))" }}
+    >
+      <div
+        className="mx-auto w-full max-w-xl px-4 pt-6 sm:max-w-2xl lg:max-w-3xl"
+        style={{ paddingTop: "calc(1.5rem + env(safe-area-inset-top))" }}
+      >
+        <div className="mb-2 flex justify-end">
+          <span className="flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-[10px] font-semibold text-muted-foreground">
+            <span className={cn("h-2 w-2 rounded-full", syncDot)} />
+            {syncLabel}
+          </span>
+        </div>
         {!online || pending > 0 ? (
           <div
             className={cn(
@@ -64,8 +79,11 @@ export function AppShell({
         </Link>
       ) : null}
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-xl items-stretch justify-between px-2 py-2 sm:max-w-2xl">
+      <nav
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 backdrop-blur"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        <div className="mx-auto flex w-full max-w-xl items-stretch justify-between px-2 py-2 sm:max-w-2xl lg:max-w-3xl">
           {NAV.map((item) => {
             const active = item.to === "/" ? pathname === "/" : pathname.startsWith(item.to);
             const Icon = item.icon;

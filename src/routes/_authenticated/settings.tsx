@@ -21,6 +21,7 @@ import {
   useTimetable,
 } from "@/lib/data";
 import { downloadStudyReport } from "@/lib/report";
+import { fileToAvatarDataUrl } from "@/lib/avatar";
 import { clearResolutions, usePendingCount, useSyncResolutions } from "@/lib/offline";
 import { useTheme, type ThemeChoice } from "@/lib/theme";
 import { autoProgressSettings, type AutoProgressRule } from "@/lib/auto-progress";
@@ -51,10 +52,15 @@ function SettingsPage() {
   const { data: timetable = [] } = useTimetable();
   const { theme, setTheme } = useTheme();
   const fileRef = useRef<HTMLInputElement>(null);
+  const avatarRef = useRef<HTMLInputElement>(null);
 
   const [name, setName] = useState("");
+  const [bio, setBio] = useState("");
   useEffect(() => {
-    if (profile) setName(profile.display_name);
+    if (profile) {
+      setName(profile.display_name);
+      setBio(profile.bio ?? "");
+    }
   }, [profile]);
 
   function patch(values: Record<string, unknown>) {
@@ -74,14 +80,49 @@ function SettingsPage() {
         <section>
           <SectionTitle>Profile</SectionTitle>
           <div className="card-soft grid gap-3 p-4">
+            <div className="flex items-center gap-3">
+              <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-3xl bg-primary-soft text-3xl">
+                {profile?.avatar_url ? (
+                  <img src={profile.avatar_url} alt="Your avatar" className="h-full w-full object-cover" />
+                ) : (
+                  (profile?.avatar_emoji ?? "🦊")
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <input
+                  ref={avatarRef}
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  onChange={async (event) => {
+                    const file = event.target.files?.[0];
+                    event.target.value = "";
+                    if (!file) return;
+                    try {
+                      patch({ avatar_url: await fileToAvatarDataUrl(file) });
+                    } catch {
+                      toast.error("Could not use that image");
+                    }
+                  }}
+                />
+                <Button size="sm" variant="secondary" className="rounded-2xl" onClick={() => avatarRef.current?.click()}>
+                  Upload photo
+                </Button>
+                {profile?.avatar_url ? (
+                  <Button size="sm" variant="ghost" className="rounded-2xl" onClick={() => patch({ avatar_url: null })}>
+                    Remove
+                  </Button>
+                ) : null}
+              </div>
+            </div>
             <div className="flex flex-wrap gap-2">
               {EMOJIS.map((emoji) => (
                 <button
                   key={emoji}
-                  onClick={() => patch({ avatar_emoji: emoji })}
+                  onClick={() => patch({ avatar_emoji: emoji, avatar_url: null })}
                   className={cn(
                     "grid h-11 w-11 place-items-center rounded-2xl text-xl",
-                    profile?.avatar_emoji === emoji ? "bg-primary-soft" : "bg-muted",
+                    profile?.avatar_emoji === emoji && !profile?.avatar_url ? "bg-primary-soft" : "bg-muted",
                   )}
                 >
                   {emoji}
@@ -93,6 +134,21 @@ function SettingsPage() {
               <div className="flex gap-2">
                 <Input value={name} onChange={(e) => setName(e.target.value)} className="rounded-2xl" />
                 <Button className="rounded-2xl" onClick={() => patch({ display_name: name.trim() || "Student" })}>
+                  Save
+                </Button>
+              </div>
+            </div>
+            <div className="grid gap-1">
+              <Label>Bio / status</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={bio}
+                  maxLength={120}
+                  placeholder="One chapter at a time."
+                  onChange={(e) => setBio(e.target.value)}
+                  className="rounded-2xl"
+                />
+                <Button className="rounded-2xl" onClick={() => patch({ bio: bio.trim() || null })}>
                   Save
                 </Button>
               </div>

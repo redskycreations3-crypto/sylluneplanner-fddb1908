@@ -1,7 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Bell, Flame, Settings, Play } from "lucide-react";
+import { Bell, Flame, Plus, Settings, Play } from "lucide-react";
+import { useState } from "react";
 import { AppShell } from "@/components/study/app-shell";
 import { EmptyState, ProgressRing, SectionTitle, SubjectIcon } from "@/components/study/primitives";
+import {
+  ManualSessionDialog,
+  type ManualSessionTarget,
+} from "@/components/study/manual-session-dialog";
 import { useChapters, useProfile, useSessions, useSubjects } from "@/lib/data";
 import { useTimer } from "@/lib/timer";
 import {
@@ -41,6 +46,7 @@ function HomePage() {
   const { data: chapters = [] } = useChapters();
   const { data: sessions = [] } = useSessions();
   const timer = useTimer();
+  const [manual, setManual] = useState<ManualSessionTarget>(null);
 
   const today = new Date();
   const todaySeconds = sessionSeconds(sessionsOn(sessions, today));
@@ -68,14 +74,27 @@ function HomePage() {
     <AppShell
       header={
         <header className="mb-5 flex items-center gap-3">
-          <Link to="/settings" className="grid h-12 w-12 place-items-center rounded-2xl bg-primary-soft text-2xl">
-            {profile?.avatar_emoji ?? "🦊"}
+          <Link
+            to="/settings"
+            className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-2xl bg-primary-soft text-2xl"
+          >
+            {profile?.avatar_url ? (
+              <img
+                src={profile.avatar_url}
+                alt={`${profile.display_name}'s avatar`}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              (profile?.avatar_emoji ?? "🦊")
+            )}
           </Link>
           <div className="min-w-0 flex-1">
             <p className="truncate font-display text-lg font-bold">
               Hi, {profile?.display_name ?? "Student"}
             </p>
-            <p className="truncate text-xs text-muted-foreground">{dateLabel}</p>
+            <p className="truncate text-xs text-muted-foreground">
+              {profile?.bio?.trim() || dateLabel}
+            </p>
           </div>
           <Link to="/planner" className="grid h-10 w-10 place-items-center rounded-2xl bg-muted">
             <Bell className="h-4 w-4" />
@@ -154,6 +173,13 @@ function HomePage() {
           <Play className="h-5 w-5" /> START STUDY
         </Link>
 
+        <button
+          onClick={() => setManual("new")}
+          className="card-soft flex items-center justify-center gap-2 py-3 text-sm font-semibold text-primary"
+        >
+          <Plus className="h-4 w-4" /> Add study time
+        </button>
+
         <section>
           <SectionTitle
             action={
@@ -184,6 +210,7 @@ function HomePage() {
           )}
         </section>
       </div>
+      <ManualSessionDialog target={manual} onClose={() => setManual(null)} />
     </AppShell>
   );
 }
