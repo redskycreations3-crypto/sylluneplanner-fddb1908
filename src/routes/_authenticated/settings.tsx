@@ -173,11 +173,7 @@ function SettingsPage() {
           </div>
         </section>
 
-        <section>
-          <SectionTitle>Notifications</SectionTitle>
-        </section>
-
-        <AutoProgressSettings profile={profile ?? null} patch={patch} />
+        <AutoProgressCard profile={profile ?? null} patch={patch} />
 
         <section>
           <SectionTitle>Notifications</SectionTitle>
