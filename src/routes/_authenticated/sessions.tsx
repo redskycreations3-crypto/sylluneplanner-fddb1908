@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { MoreVertical, Pencil, Plus, Trash2 } from "lucide-react";
+import { MoreVertical, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/study/app-shell";
 import { EmptyState, SubjectIcon } from "@/components/study/primitives";
@@ -10,6 +10,7 @@ import {
 } from "@/components/study/manual-session-dialog";
 import { ConfirmDialog } from "@/components/study/confirm-dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,15 +50,32 @@ function SessionsPage() {
   const [manual, setManual] = useState<ManualSessionTarget>(null);
   const [source, setSource] = useState<SourceKey>("all");
   const [subjectId, setSubjectId] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
   const [pendingDelete, setPendingDelete] = useState<StudySession | null>(null);
 
   const rows = useMemo(() => {
+    const q = query.trim().toLowerCase();
     return sessions
       .filter((s) => (source === "all" ? true : sessionSourceLabel(s).toLowerCase() === source))
       .filter((s) => (subjectId ? s.subject_id === subjectId : true))
+      .filter((s) => {
+        if (!q) return true;
+        const subject = subjects.find((sub) => sub.id === s.subject_id);
+        const chapter = chapters.find((c) => c.id === s.chapter_id);
+        const text = [
+          subject?.name,
+          chapter?.name,
+          s.note,
+          sessionSourceLabel(s),
+          new Date(s.started_at).toLocaleDateString(),
+        ]
+          .join(" ")
+          .toLowerCase();
+        return text.includes(q);
+      })
       .slice()
       .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime());
-  }, [sessions, source, subjectId]);
+  }, [sessions, source, subjectId, query, subjects, chapters]);
 
   const totalSeconds = rows.reduce((sum, s) => sum + (s.duration_seconds ?? 0), 0);
 
@@ -67,6 +85,26 @@ function SessionsPage() {
         <Button className="rounded-2xl" onClick={() => setManual("new")}>
           <Plus className="mr-1 h-4 w-4" /> Add study time
         </Button>
+
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search subject, chapter, notes..."
+            className="h-11 rounded-2xl border-none bg-muted pl-9 pr-9 text-sm"
+            aria-label="Search sessions"
+          />
+          {query ? (
+            <button
+              onClick={() => setQuery("")}
+              className="absolute right-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full text-muted-foreground hover:bg-muted-foreground/10"
+              aria-label="Clear search"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          ) : null}
+        </div>
 
         <div className="flex flex-wrap gap-2">
           {SOURCES.map((item) => (
