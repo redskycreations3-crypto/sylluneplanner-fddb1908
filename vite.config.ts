@@ -22,6 +22,9 @@ export default defineConfig({
         filename: "sw.js",
         devOptions: { enabled: false },
         manifest: false,
+        // The client bundle is emitted to dist/client; without this the SW and its
+        // precache manifest land in dist/ and are never served at /sw.js.
+        outDir: "dist/client",
         workbox: {
           navigateFallbackDenylist: [/^\/api\//, /^\/~oauth/],
           globPatterns: ["**/*.{js,css,woff2,png,svg,ico}"],

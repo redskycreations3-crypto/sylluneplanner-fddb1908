@@ -2,11 +2,23 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export type OutboxOp =
-  | { id: string; at: string; kind: "insert"; table: OutboxTable; payload: Record<string, unknown> }
+  | {
+      id: string;
+      at: string;
+      kind: "insert";
+      table: OutboxTable;
+      payload: Record<string, unknown>;
+      localId?: string;
+    }
   | { id: string; at: string; kind: "update"; table: OutboxTable; rowId: string; payload: Record<string, unknown> }
   | { id: string; at: string; kind: "delete"; table: OutboxTable; rowId: string };
 
-export type OutboxTable = "study_sessions" | "chapters" | "timetable_entries";
+export type OutboxTable =
+  | "study_sessions"
+  | "chapters"
+  | "subjects"
+  | "timetable_entries"
+  | "profiles";
 
 const KEY = "studyflow.outbox.v1";
 const EVENT = "studyflow:outbox";
@@ -65,8 +77,43 @@ export function enqueue(op: OutboxDraft) {
     id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     at: new Date().toISOString(),
   } as OutboxOp;
+  if (full.kind === "insert" && !full.localId) full.localId = full.id;
   writeOutbox([...readOutbox(), full]);
   return full;
+}
+
+/**
+ * Deleting something that was created offline never needs to reach the cloud —
+ * we just drop the queued insert plus any edits made to it.
+ */
+export function enqueueDelete(table: OutboxTable, rowId: string) {
+  if (rowId.startsWith("local-")) {
+    writeOutbox(
+      readOutbox().filter((op) => {
+        if (op.kind === "insert") return op.localId !== rowId;
+        return op.rowId !== rowId;
+      }),
+    );
+    return null;
+  }
+  return enqueue({ kind: "delete", table, rowId });
+}
+
+/** Rows created offline get real ids on sync; every reference must follow. */
+const REFERENCE_FIELDS = ["subject_id", "chapter_id"] as const;
+
+function remap(op: OutboxOp, idMap: Map<string, string>): OutboxOp {
+  const next = { ...op } as OutboxOp;
+  if (next.kind !== "insert" && idMap.has(next.rowId)) next.rowId = idMap.get(next.rowId)!;
+  if (next.kind !== "delete") {
+    const payload = { ...next.payload };
+    for (const field of REFERENCE_FIELDS) {
+      const value = payload[field];
+      if (typeof value === "string" && idMap.has(value)) payload[field] = idMap.get(value)!;
+    }
+    next.payload = payload;
+  }
+  return next;
 }
 
 /** Push every queued change to the cloud. Returns how many synced. */
@@ -77,9 +124,11 @@ export async function flushOutbox(): Promise<{ synced: number; resolutions: Sync
 
   const remaining: OutboxOp[] = [];
   const resolutions: SyncResolution[] = [];
+  const idMap = new Map<string, string>();
   let synced = 0;
 
-  for (const op of ops) {
+  for (const raw of ops) {
+    const op = remap(raw, idMap);
     try {
       if (op.kind === "insert" && op.table === "study_sessions") {
         const outcome = await syncSessionInsert(op.payload);
@@ -87,13 +136,28 @@ export async function flushOutbox(): Promise<{ synced: number; resolutions: Sync
         synced += 1;
         continue;
       }
+      if (op.kind === "insert") {
+        const { data, error } = await supabase
+          .from(op.table)
+          .insert(op.payload as never)
+          .select("id")
+          .single();
+        if (error) throw error;
+        if (op.localId && data?.id) idMap.set(op.localId, data.id as string);
+        synced += 1;
+        continue;
+      }
+      if (op.kind === "update" && op.table === "profiles") {
+        const { error } = await supabase.from("profiles").update(op.payload as never).eq("id", op.rowId);
+        if (error) throw error;
+        synced += 1;
+        continue;
+      }
       const table = supabase.from(op.table);
       const { error } =
-        op.kind === "insert"
-          ? await table.insert(op.payload as never)
-          : op.kind === "update"
-            ? await table.update(op.payload as never).eq("id", op.rowId)
-            : await table.delete().eq("id", op.rowId);
+        op.kind === "update"
+          ? await table.update(op.payload as never).eq("id", op.rowId)
+          : await table.delete().eq("id", op.rowId);
       if (error) throw error;
       synced += 1;
     } catch {
