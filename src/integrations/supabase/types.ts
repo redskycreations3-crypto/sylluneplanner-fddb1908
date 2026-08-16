@@ -23,6 +23,7 @@ export type Database = {
           notes: string | null
           position: number
           priority: string
+          progress: number
           revision: string
           status: string
           subject_id: string
@@ -37,6 +38,7 @@ export type Database = {
           notes?: string | null
           position?: number
           priority?: string
+          progress?: number
           revision?: string
           status?: string
           subject_id: string
@@ -51,6 +53,7 @@ export type Database = {
           notes?: string | null
           position?: number
           priority?: string
+          progress?: number
           revision?: string
           status?: string
           subject_id?: string
@@ -66,6 +69,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      daily_goals: {
+        Row: {
+          created_at: string
+          day: string
+          goal_minutes: number
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          day: string
+          goal_minutes?: number
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          day?: string
+          goal_minutes?: number
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
