@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { MoreVertical, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, MoreVertical, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/study/app-shell";
 import { EmptyState, SubjectIcon } from "@/components/study/primitives";
@@ -18,7 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useChapters, useDeleteSession, useSessions, useSubjects } from "@/lib/data";
-import { colorOf, formatDuration, sessionSourceLabel, type StudySession } from "@/lib/study";
+import { colorOf, dayKey, formatDuration, sessionSourceLabel, type StudySession } from "@/lib/study";
 import { cn } from "@/lib/utils";
 
 const SOURCES = [
