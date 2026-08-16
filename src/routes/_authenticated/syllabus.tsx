@@ -2,7 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { ChevronDown, ChevronUp, Plus, Search, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/study/app-shell";
-import { EmptyState, ProgressBar, SubjectIcon } from "@/components/study/primitives";
+import { ProgressBar, SubjectIcon } from "@/components/study/primitives";
+import { ConfirmDialog } from "@/components/study/confirm-dialog";
+import { SubjectDialog, type SubjectDraft } from "@/components/study/subject-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,8 +26,10 @@ import {
 import {
   useChapters,
   useDeleteChapter,
+  useDeleteSubject,
   useReorderChapters,
   useSaveChapter,
+  useSaveSubject,
   useSubjects,
 } from "@/lib/data";
 import {
@@ -35,6 +39,7 @@ import {
   chapterProgress,
   colorOf,
   type Chapter,
+  type Subject,
 } from "@/lib/study";
 import { cn } from "@/lib/utils";
 
@@ -64,11 +69,24 @@ function SyllabusPage() {
   const save = useSaveChapter();
   const remove = useDeleteChapter();
   const reorder = useReorderChapters();
+  const saveSubject = useSaveSubject();
+  const removeSubject = useDeleteSubject();
 
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("all");
   const [open, setOpen] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [subjectDraft, setSubjectDraft] = useState<SubjectDraft | null>(null);
+  const [chapterToDelete, setChapterToDelete] = useState<Chapter | null>(null);
+  const [subjectToDelete, setSubjectToDelete] = useState<Subject | null>(null);
+
+  const newSubjectDraft = (): SubjectDraft => ({
+    name: "",
+    icon: "book",
+    color: "lavender",
+    daily_goal_minutes: 60,
+    weekly_goal_minutes: 300,
+  });
 
   const overall = chapterProgress(chapters);
 
@@ -105,14 +123,16 @@ function SyllabusPage() {
             size="sm"
             className="rounded-2xl"
             onClick={() =>
-              setDraft({
-                subject_id: subjects[0]?.id ?? "",
-                status: "not_started",
-                priority: "medium",
-              })
+              subjects.length === 0
+                ? setSubjectDraft(newSubjectDraft())
+                : setDraft({
+                    subject_id: subjects[0]?.id ?? "",
+                    status: "not_started",
+                    priority: "medium",
+                  })
             }
           >
-            <Plus className="mr-1 h-4 w-4" /> Chapter
+            <Plus className="mr-1 h-4 w-4" /> {subjects.length === 0 ? "Add Subject" : "Chapter"}
           </Button>
         </header>
       }
@@ -144,7 +164,16 @@ function SyllabusPage() {
       </div>
 
       {subjects.length === 0 ? (
-        <EmptyState title="No subjects yet" hint="Add a subject first." />
+        <div className="card-soft mt-6 grid place-items-center gap-3 px-6 py-10 text-center">
+          <span className="text-4xl">🗂️</span>
+          <p className="font-display text-lg font-bold">No syllabus added yet</p>
+          <p className="text-sm text-muted-foreground">
+            Add your subjects and chapters to get started.
+          </p>
+          <Button className="mt-1 rounded-2xl" onClick={() => setSubjectDraft(newSubjectDraft())}>
+            <Plus className="mr-1 h-4 w-4" /> Add Subject
+          </Button>
+        </div>
       ) : (
         <div className="grid gap-3">
           {subjects.map((subject) => {
@@ -155,10 +184,11 @@ function SyllabusPage() {
             const expanded = open === subject.id;
             return (
               <div key={subject.id} className="card-soft overflow-hidden">
-                <button
-                  className="flex w-full items-center gap-3 p-4 text-left"
-                  onClick={() => setOpen(expanded ? null : subject.id)}
-                >
+                <div className="flex w-full items-center gap-3 p-4 text-left">
+                  <button
+                    className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                    onClick={() => setOpen(expanded ? null : subject.id)}
+                  >
                   <SubjectIcon subject={subject} size="sm" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-bold">{subject.name}</p>
@@ -170,12 +200,23 @@ function SyllabusPage() {
                     </div>
                   </div>
                   {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </button>
+                  </button>
+                  <button
+                    className="shrink-0 text-muted-foreground"
+                    aria-label={`Delete ${subject.name}`}
+                    onClick={() => setSubjectToDelete(subject)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
 
                 {expanded ? (
                   <div className="grid gap-2 border-t border-border px-4 py-3">
                     {list.length === 0 ? (
-                      <p className="py-2 text-center text-xs text-muted-foreground">No chapters here.</p>
+                      <div className="grid place-items-center gap-1 py-3 text-center">
+                        <span className="text-2xl">📝</span>
+                        <p className="text-xs font-semibold">No chapters added yet.</p>
+                      </div>
                     ) : (
                       list.map((chapter, index) => {
                         const meta = CHAPTER_STATUSES.find((s) => s.value === chapter.status);
@@ -199,6 +240,12 @@ function SyllabusPage() {
                             <button onClick={() => move(list, index, 1)} aria-label="Move down">
                               <ChevronDown className="h-4 w-4 text-muted-foreground" />
                             </button>
+                            <button
+                              onClick={() => setChapterToDelete(chapter)}
+                              aria-label={`Delete ${chapter.name}`}
+                            >
+                              <Trash2 className="h-4 w-4 text-muted-foreground" />
+                            </button>
                           </div>
                         );
                       })
@@ -211,13 +258,20 @@ function SyllabusPage() {
                         setDraft({ subject_id: subject.id, status: "not_started", priority: "medium" })
                       }
                     >
-                      <Plus className="mr-1 h-4 w-4" /> Add chapter
+                      <Plus className="mr-1 h-4 w-4" /> Add Chapter
                     </Button>
                   </div>
                 ) : null}
               </div>
             );
           })}
+          <Button
+            variant="secondary"
+            className="rounded-2xl"
+            onClick={() => setSubjectDraft(newSubjectDraft())}
+          >
+            <Plus className="mr-1 h-4 w-4" /> Add Subject
+          </Button>
         </div>
       )}
 
@@ -311,7 +365,7 @@ function SyllabusPage() {
                 variant="ghost"
                 className="text-destructive"
                 onClick={() => {
-                  remove.mutate(draft.id!);
+                  setChapterToDelete(chapters.find((c) => c.id === draft.id) ?? null);
                   setDraft(null);
                 }}
               >
@@ -341,6 +395,45 @@ function SyllabusPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <SubjectDialog
+        draft={subjectDraft}
+        onChange={setSubjectDraft}
+        onClose={() => setSubjectDraft(null)}
+        onSave={(next) => {
+          saveSubject.mutate({
+            ...(next.id ? { id: next.id } : {}),
+            name: next.name?.trim() || "New subject",
+            icon: next.icon ?? "book",
+            color: next.color ?? "lavender",
+            daily_goal_minutes: next.daily_goal_minutes ?? 60,
+            weekly_goal_minutes: next.weekly_goal_minutes ?? 300,
+          });
+          setSubjectDraft(null);
+        }}
+      />
+
+      <ConfirmDialog
+        open={chapterToDelete !== null}
+        title="Delete this chapter?"
+        description="This will remove the chapter and its syllabus progress."
+        onCancel={() => setChapterToDelete(null)}
+        onConfirm={() => {
+          if (chapterToDelete) remove.mutate(chapterToDelete.id);
+          setChapterToDelete(null);
+        }}
+      />
+
+      <ConfirmDialog
+        open={subjectToDelete !== null}
+        title={`Delete ${subjectToDelete?.name ?? "subject"}?`}
+        description="This will permanently delete the subject, all its chapters, and related syllabus progress."
+        onCancel={() => setSubjectToDelete(null)}
+        onConfirm={() => {
+          if (subjectToDelete) removeSubject.mutate(subjectToDelete.id);
+          setSubjectToDelete(null);
+        }}
+      />
     </AppShell>
   );
 }

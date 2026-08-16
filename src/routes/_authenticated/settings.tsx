@@ -21,6 +21,7 @@ import {
   useTimetable,
 } from "@/lib/data";
 import { downloadStudyReport } from "@/lib/report";
+import { clearResolutions, usePendingCount, useSyncResolutions } from "@/lib/offline";
 import { useTheme, type ThemeChoice } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
@@ -279,10 +280,47 @@ function SettingsPage() {
           </div>
         </section>
 
+        <SyncActivity />
+
         <Button variant="ghost" className="rounded-2xl" onClick={signOut}>
           Sign out
         </Button>
       </div>
     </AppShell>
+  );
+}
+
+function SyncActivity() {
+  const resolutions = useSyncResolutions();
+  const pending = usePendingCount();
+  return (
+    <section>
+      <SectionTitle>Sync activity</SectionTitle>
+      <div className="card-soft grid gap-2 p-4">
+        <p className="text-xs text-muted-foreground">
+          {pending > 0
+            ? `${pending} change${pending > 1 ? "s" : ""} waiting to sync.`
+            : "Everything is synced."}
+        </p>
+        {resolutions.length === 0 ? (
+          <p className="text-xs text-muted-foreground">No conflicts so far.</p>
+        ) : (
+          <>
+            {[...resolutions].reverse().slice(0, 8).map((item) => (
+              <div key={item.id + item.at} className="rounded-2xl bg-muted/50 px-3 py-2">
+                <p className="text-xs font-semibold capitalize">{item.outcome}</p>
+                <p className="text-[11px] text-muted-foreground">{item.message}</p>
+                <p className="num text-[10px] text-muted-foreground">
+                  {new Date(item.at).toLocaleString()}
+                </p>
+              </div>
+            ))}
+            <Button variant="ghost" size="sm" className="rounded-2xl" onClick={clearResolutions}>
+              Clear log
+            </Button>
+          </>
+        )}
+      </div>
+      </section>
   );
 }

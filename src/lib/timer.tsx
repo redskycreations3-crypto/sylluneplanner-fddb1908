@@ -66,6 +66,20 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
     return () => window.clearInterval(id);
   }, []);
 
+  // Backgrounded tabs and locked screens throttle timers; re-read the wall
+  // clock the moment we're visible again so elapsed time stays accurate.
+  useEffect(() => {
+    const resync = () => setNow(Date.now());
+    document.addEventListener("visibilitychange", resync);
+    window.addEventListener("focus", resync);
+    window.addEventListener("pageshow", resync);
+    return () => {
+      document.removeEventListener("visibilitychange", resync);
+      window.removeEventListener("focus", resync);
+      window.removeEventListener("pageshow", resync);
+    };
+  }, []);
+
   const elapsed = useMemo(() => {
     const live = state.runningSince ? (now - state.runningSince) / 1000 : 0;
     return Math.floor(state.accumulated + live);
