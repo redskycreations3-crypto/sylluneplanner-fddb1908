@@ -33,12 +33,16 @@ export function AppShell({
 
   return (
     <div
-      className="min-h-screen bg-background pb-28"
+      className="min-h-screen w-full max-w-full overflow-x-hidden bg-background pb-28"
       style={{ paddingBottom: "calc(7rem + env(safe-area-inset-bottom))" }}
     >
       <div
-        className="mx-auto w-full max-w-xl px-4 pt-6 sm:max-w-2xl lg:max-w-3xl"
-        style={{ paddingTop: "calc(1.5rem + env(safe-area-inset-top))" }}
+        className="mx-auto w-full min-w-0 max-w-xl px-4 pt-6 sm:max-w-2xl lg:max-w-3xl"
+        style={{
+          paddingTop: "calc(1.5rem + env(safe-area-inset-top))",
+          paddingLeft: "calc(1rem + env(safe-area-inset-left))",
+          paddingRight: "calc(1rem + env(safe-area-inset-right))",
+        }}
       >
         <div className="mb-2 flex justify-end">
           <span className="flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-[10px] font-semibold text-muted-foreground">
@@ -83,7 +87,13 @@ export function AppShell({
         className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 backdrop-blur"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        <div className="mx-auto flex w-full max-w-xl items-stretch justify-between px-2 py-2 sm:max-w-2xl lg:max-w-3xl">
+        <div
+          className="mx-auto flex w-full min-w-0 max-w-xl items-stretch justify-between px-2 py-2 sm:max-w-2xl lg:max-w-3xl"
+          style={{
+            paddingLeft: "calc(0.5rem + env(safe-area-inset-left))",
+            paddingRight: "calc(0.5rem + env(safe-area-inset-right))",
+          }}
+        >
           {NAV.map((item) => {
             const active = item.to === "/" ? pathname === "/" : pathname.startsWith(item.to);
             const Icon = item.icon;
@@ -92,7 +102,7 @@ export function AppShell({
                 key={item.to}
                 to={item.to}
                 className={cn(
-                  "flex flex-1 flex-col items-center gap-1 rounded-2xl py-2 text-[11px] font-medium transition-colors",
+                  "flex min-w-0 flex-1 flex-col items-center gap-1 rounded-2xl py-2 text-[10px] font-medium transition-colors",
                   active ? "text-primary" : "text-muted-foreground",
                 )}
               >
@@ -104,7 +114,7 @@ export function AppShell({
                 >
                   <Icon className="h-5 w-5" />
                 </span>
-                {item.label}
+                <span className="max-w-full truncate">{item.label}</span>
               </Link>
             );
           })}
