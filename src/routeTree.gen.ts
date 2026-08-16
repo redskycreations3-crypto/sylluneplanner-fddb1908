@@ -14,6 +14,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedAnalyticsRouteImport } from './routes/_authenticated/analytics'
 import { Route as AuthenticatedFocusRouteImport } from './routes/_authenticated/focus'
+import { Route as AuthenticatedPlannerRouteImport } from './routes/_authenticated/planner'
 import { Route as AuthenticatedSessionsRouteImport } from './routes/_authenticated/sessions'
 import { Route as AuthenticatedSubjectsRouteImport } from './routes/_authenticated/subjects'
 import { Route as AuthenticatedSyllabusRouteImport } from './routes/_authenticated/syllabus'
@@ -42,6 +43,11 @@ const AuthenticatedFocusRoute = AuthenticatedFocusRouteImport.update({
   path: '/focus',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedPlannerRoute = AuthenticatedPlannerRouteImport.update({
+  id: '/planner',
+  path: '/planner',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedSessionsRoute = AuthenticatedSessionsRouteImport.update({
   id: '/sessions',
   path: '/sessions',
@@ -63,6 +69,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/analytics': typeof AuthenticatedAnalyticsRoute
   '/focus': typeof AuthenticatedFocusRoute
+  '/planner': typeof AuthenticatedPlannerRoute
   '/sessions': typeof AuthenticatedSessionsRoute
   '/subjects': typeof AuthenticatedSubjectsRoute
   '/syllabus': typeof AuthenticatedSyllabusRoute
@@ -71,6 +78,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/analytics': typeof AuthenticatedAnalyticsRoute
   '/focus': typeof AuthenticatedFocusRoute
+  '/planner': typeof AuthenticatedPlannerRoute
   '/sessions': typeof AuthenticatedSessionsRoute
   '/subjects': typeof AuthenticatedSubjectsRoute
   '/syllabus': typeof AuthenticatedSyllabusRoute
@@ -82,6 +90,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/analytics': typeof AuthenticatedAnalyticsRoute
   '/_authenticated/focus': typeof AuthenticatedFocusRoute
+  '/_authenticated/planner': typeof AuthenticatedPlannerRoute
   '/_authenticated/sessions': typeof AuthenticatedSessionsRoute
   '/_authenticated/subjects': typeof AuthenticatedSubjectsRoute
   '/_authenticated/syllabus': typeof AuthenticatedSyllabusRoute
@@ -94,6 +103,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/analytics'
     | '/focus'
+    | '/planner'
     | '/sessions'
     | '/subjects'
     | '/syllabus'
@@ -102,6 +112,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/analytics'
     | '/focus'
+    | '/planner'
     | '/sessions'
     | '/subjects'
     | '/syllabus'
@@ -112,6 +123,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/analytics'
     | '/_authenticated/focus'
+    | '/_authenticated/planner'
     | '/_authenticated/sessions'
     | '/_authenticated/subjects'
     | '/_authenticated/syllabus'
@@ -160,6 +172,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFocusRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/planner': {
+      id: '/_authenticated/planner'
+      path: '/planner'
+      fullPath: '/planner'
+      preLoaderRoute: typeof AuthenticatedPlannerRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/sessions': {
       id: '/_authenticated/sessions'
       path: '/sessions'
@@ -187,6 +206,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAnalyticsRoute: typeof AuthenticatedAnalyticsRoute
   AuthenticatedFocusRoute: typeof AuthenticatedFocusRoute
+  AuthenticatedPlannerRoute: typeof AuthenticatedPlannerRoute
   AuthenticatedSessionsRoute: typeof AuthenticatedSessionsRoute
   AuthenticatedSubjectsRoute: typeof AuthenticatedSubjectsRoute
   AuthenticatedSyllabusRoute: typeof AuthenticatedSyllabusRoute
@@ -196,6 +216,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAnalyticsRoute: AuthenticatedAnalyticsRoute,
   AuthenticatedFocusRoute: AuthenticatedFocusRoute,
+  AuthenticatedPlannerRoute: AuthenticatedPlannerRoute,
   AuthenticatedSessionsRoute: AuthenticatedSessionsRoute,
   AuthenticatedSubjectsRoute: AuthenticatedSubjectsRoute,
   AuthenticatedSyllabusRoute: AuthenticatedSyllabusRoute,
