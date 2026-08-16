@@ -184,12 +184,12 @@ function SubjectsPage() {
               onClick={() => {
                 if (!draft) return;
                 save.mutate({
-                  id: draft.id,
+                  ...(draft.id ? { id: draft.id } : {}),
                   name: draft.name?.trim() || "New subject",
-                  icon: draft.icon,
-                  color: draft.color,
-                  daily_goal_minutes: draft.daily_goal_minutes,
-                  weekly_goal_minutes: draft.weekly_goal_minutes,
+                  icon: draft.icon ?? "book",
+                  color: draft.color ?? "lavender",
+                  daily_goal_minutes: draft.daily_goal_minutes ?? 60,
+                  weekly_goal_minutes: draft.weekly_goal_minutes ?? 300,
                 });
                 setDraft(null);
               }}
