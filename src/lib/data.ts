@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Chapter, Profile, StudySession, Subject, TimetableEntry } from "./study";
+import { enqueue, flushOutbox, isOnline, offlineUserId, readOutbox } from "./offline";
+import { useEffect } from "react";
 
 const STARTER_SUBJECTS: Array<{
   name: string;
@@ -39,6 +41,42 @@ const STARTER_SUBJECTS: Array<{
 async function currentUserId() {
   const { data } = await supabase.auth.getUser();
   return data.user?.id ?? null;
+}
+
+/** Keeps working with no connection: queues the write and replays it on reconnect. */
+function offlineFirst<T>(run: () => Promise<T>, queue: () => void) {
+  if (!isOnline()) {
+    queue();
+    return Promise.resolve(undefined as T);
+  }
+  return run().catch((error) => {
+    if (!isOnline()) {
+      queue();
+      return undefined as T;
+    }
+    throw error;
+  });
+}
+
+/** Replays queued offline changes whenever the connection comes back. */
+export function useOutboxSync() {
+  const qc = useQueryClient();
+  useEffect(() => {
+    let cancelled = false;
+    const sync = async () => {
+      if (readOutbox().length === 0) return;
+      const synced = await flushOutbox();
+      if (synced > 0 && !cancelled) qc.invalidateQueries();
+    };
+    sync();
+    window.addEventListener("online", sync);
+    const id = window.setInterval(sync, 30000);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("online", sync);
+      window.clearInterval(id);
+    };
+  }, [qc]);
 }
 
 let bootstrapPromise: Promise<void> | null = null;
@@ -247,14 +285,25 @@ export function useDeleteSubject() {
 
 export function useSaveChapter() {
   const invalidate = useInvalidate(["chapters"]);
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: Partial<Chapter> & { id?: string; subject_id?: string }) => {
-      const userId = await currentUserId();
+      const userId = isOnline() ? await currentUserId() : await offlineUserId();
       if (!userId) throw new Error("Not signed in");
       if (input.id) {
         const { id, ...patch } = input;
-        const { error } = await supabase.from("chapters").update(patch).eq("id", id);
-        if (error) throw error;
+        await offlineFirst(
+          async () => {
+            const { error } = await supabase.from("chapters").update(patch).eq("id", id);
+            if (error) throw error;
+          },
+          () => {
+            enqueue({ kind: "update", table: "chapters", rowId: id, payload: patch });
+            qc.setQueryData<Chapter[]>(["chapters"], (rows) =>
+              (rows ?? []).map((row) => (row.id === id ? { ...row, ...patch } : row)),
+            );
+          },
+        );
       } else {
         if (!input.subject_id) throw new Error("Pick a subject");
         const { error } = await supabase.from("chapters").insert({
@@ -298,18 +347,53 @@ export function useReorderChapters() {
 }
 
 export function useSaveSession() {
+  const qc = useQueryClient();
   const invalidate = useInvalidate(["sessions"]);
   return useMutation({
     mutationFn: async (input: Partial<StudySession> & { id?: string }) => {
-      const userId = await currentUserId();
+      const userId = isOnline() ? await currentUserId() : await offlineUserId();
       if (!userId) throw new Error("Not signed in");
       if (input.id) {
         const { id, ...patch } = input;
-        const { error } = await supabase.from("study_sessions").update(patch).eq("id", id);
-        if (error) throw error;
+        await offlineFirst(
+          async () => {
+            const { error } = await supabase.from("study_sessions").update(patch).eq("id", id);
+            if (error) throw error;
+          },
+          () => {
+            enqueue({ kind: "update", table: "study_sessions", rowId: id, payload: patch });
+            qc.setQueryData<StudySession[]>(["sessions"], (rows) =>
+              (rows ?? []).map((row) => (row.id === id ? { ...row, ...patch } : row)),
+            );
+          },
+        );
       } else {
-        const { error } = await supabase.from("study_sessions").insert({ ...input, user_id: userId });
-        if (error) throw error;
+        const payload = { ...input, user_id: userId };
+        await offlineFirst(
+          async () => {
+            const { error } = await supabase.from("study_sessions").insert(payload);
+            if (error) throw error;
+          },
+          () => {
+            const queued = enqueue({ kind: "insert", table: "study_sessions", payload });
+            qc.setQueryData<StudySession[]>(["sessions"], (rows) => [
+              {
+                id: queued.id,
+                user_id: userId,
+                subject_id: input.subject_id ?? null,
+                chapter_id: input.chapter_id ?? null,
+                started_at: input.started_at ?? queued.at,
+                ended_at: input.ended_at ?? queued.at,
+                duration_seconds: input.duration_seconds ?? 0,
+                break_seconds: input.break_seconds ?? 0,
+                session_type: input.session_type ?? "stopwatch",
+                note: input.note ?? null,
+                created_at: queued.at,
+              },
+              ...(rows ?? []),
+            ]);
+          },
+        );
       }
     },
     onSuccess: invalidate,
@@ -318,10 +402,21 @@ export function useSaveSession() {
 
 export function useDeleteSession() {
   const invalidate = useInvalidate(["sessions"]);
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("study_sessions").delete().eq("id", id);
-      if (error) throw error;
+      await offlineFirst(
+        async () => {
+          const { error } = await supabase.from("study_sessions").delete().eq("id", id);
+          if (error) throw error;
+        },
+        () => {
+          if (!id.startsWith("local-")) enqueue({ kind: "delete", table: "study_sessions", rowId: id });
+          qc.setQueryData<StudySession[]>(["sessions"], (rows) =>
+            (rows ?? []).filter((row) => row.id !== id),
+          );
+        },
+      );
     },
     onSuccess: invalidate,
   });

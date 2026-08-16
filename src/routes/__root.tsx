@@ -11,6 +11,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { startQueryPersistence } from "../lib/persist-query";
 import { Toaster } from "@/components/ui/sonner";
 import { applyTheme } from "@/lib/theme";
 
@@ -135,6 +136,10 @@ function RootComponent() {
     const stored = (localStorage.getItem("studyflow.theme") as "light" | "dark" | "system") ?? "system";
     applyTheme(stored);
   }, []);
+
+  useEffect(() => {
+    startQueryPersistence(queryClient);
+  }, [queryClient]);
 
   return (
     <QueryClientProvider client={queryClient}>
