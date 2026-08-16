@@ -322,7 +322,7 @@ export async function scheduleAt(
 }
 
 export function nextOccurrence(time: string, day?: number, from = new Date()) {
-  const [h, m] = time.split(":").map((n) => Number(n) || 0);
+  const [h = 0, m = 0] = time.split(":").map((n) => Number(n) || 0);
   const date = new Date(from);
   date.setHours(h, m, 0, 0);
   if (typeof day === "number") {
@@ -336,11 +336,6 @@ export function nextOccurrence(time: string, day?: number, from = new Date()) {
 /** Reschedules every user study reminder from the stored list. */
 export async function syncStudyReminders() {
   const reminders = getReminders();
-  const ids: number[] = [];
-  reminders.forEach((reminder, index) => {
-    const slots = reminder.days.length ? reminder.days : [-1];
-    slots.forEach((_, slot) => ids.push(IDS.reminderBase + index * 10 + slot));
-  });
   await cancelIds(
     Array.from({ length: 200 }, (_, i) => IDS.reminderBase + i),
   );
