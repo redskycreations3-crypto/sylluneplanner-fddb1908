@@ -362,8 +362,16 @@ function FocusPage() {
                 onClick={() => timer.configure({ subjectId: s.id, chapterId: null })}
                 className={cn(
                   "flex items-center gap-2 rounded-2xl px-3 py-2 text-xs font-semibold",
-                  state.subjectId === s.id ? "bg-primary-soft text-primary" : "bg-muted",
+                  state.subjectId === s.id ? "ring-2" : "bg-muted",
                 )}
+                style={
+                  state.subjectId === s.id
+                    ? {
+                        background: `color-mix(in oklch, ${colorOf(s).hex} 22%, transparent)`,
+                        color: colorOf(s).hex,
+                      }
+                    : undefined
+                }
               >
                 <SubjectIcon subject={s} size="sm" />
                 {s.name}
