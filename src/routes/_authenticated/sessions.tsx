@@ -50,15 +50,32 @@ function SessionsPage() {
   const [manual, setManual] = useState<ManualSessionTarget>(null);
   const [source, setSource] = useState<SourceKey>("all");
   const [subjectId, setSubjectId] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
   const [pendingDelete, setPendingDelete] = useState<StudySession | null>(null);
 
   const rows = useMemo(() => {
+    const q = query.trim().toLowerCase();
     return sessions
       .filter((s) => (source === "all" ? true : sessionSourceLabel(s).toLowerCase() === source))
       .filter((s) => (subjectId ? s.subject_id === subjectId : true))
+      .filter((s) => {
+        if (!q) return true;
+        const subject = subjects.find((sub) => sub.id === s.subject_id);
+        const chapter = chapters.find((c) => c.id === s.chapter_id);
+        const text = [
+          subject?.name,
+          chapter?.name,
+          s.note,
+          sessionSourceLabel(s),
+          new Date(s.started_at).toLocaleDateString(),
+        ]
+          .join(" ")
+          .toLowerCase();
+        return text.includes(q);
+      })
       .slice()
       .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime());
-  }, [sessions, source, subjectId]);
+  }, [sessions, source, subjectId, query, subjects, chapters]);
 
   const totalSeconds = rows.reduce((sum, s) => sum + (s.duration_seconds ?? 0), 0);
 
