@@ -1,4 +1,6 @@
 import { jsPDF } from "jspdf";
+import { savePdfDocument } from "./pdf-save";
+import { DEFAULT_DAILY_GOAL_MINUTES, goalLabel, scoreFor, type DailyGoal } from "./score";
 import {
   DAYS,
   chapterProgress,
@@ -23,6 +25,7 @@ type ReportInput = {
   chapters: Chapter[];
   sessions: StudySession[];
   timetable: TimetableEntry[];
+  dailyGoals?: DailyGoal[];
 };
 
 const INK: [number, number, number] = [30, 27, 46];
@@ -76,7 +79,7 @@ export function buildStudyReport({ profile, subjects, chapters, sessions, timeta
   doc.setFillColor(...BRAND);
   doc.rect(0, 0, pageW, 96, "F");
   doc.setFont("helvetica", "bold").setFontSize(22).setTextColor(255, 255, 255);
-  doc.text("StudyFlow weekly report", M, 46);
+  doc.text("Syllune study tracker record", M, 46);
   doc.setFont("helvetica", "normal").setFontSize(10);
   doc.text(
     `${profile?.display_name ?? "Student"}  ·  Week of ${weekStart.toLocaleDateString(undefined, {
@@ -93,6 +96,10 @@ export function buildStudyReport({ profile, subjects, chapters, sessions, timeta
   const tiles = [
     { label: "This week", value: formatDuration(weekSeconds) },
     { label: "Today", value: formatDuration(todaySeconds) },
+    {
+      label: "Today's score",
+      value: `${scoreFor(todaySeconds, profile?.daily_goal_minutes ?? DEFAULT_DAILY_GOAL_MINUTES)} / 100`,
+    },
     { label: "Current streak", value: `${current} d` },
     { label: "Longest streak", value: `${longest} d` },
     { label: "Study days", value: String(totalDays) },
@@ -120,7 +127,13 @@ export function buildStudyReport({ profile, subjects, chapters, sessions, timeta
   const goalPct = weeklyGoal ? Math.min(100, Math.round((weekSeconds / weeklyGoal) * 100)) : 0;
   ensure(40);
   doc.setFont("helvetica", "normal").setFontSize(9).setTextColor(...MUTED);
-  doc.text(`Weekly goal ${formatDuration(weeklyGoal)}  ·  ${goalPct}% complete`, M, y + 8);
+  doc.text(
+    `Weekly goal ${formatDuration(weeklyGoal)}  ·  ${goalPct}% complete  ·  Daily goal ${goalLabel(
+      profile?.daily_goal_minutes ?? DEFAULT_DAILY_GOAL_MINUTES,
+    )}`,
+    M,
+    y + 8,
+  );
   doc.setFillColor(...LINE);
   doc.roundedRect(M, y + 14, pageW - M * 2, 8, 4, 4, "F");
   if (goalPct > 0) {
@@ -232,13 +245,21 @@ export function buildStudyReport({ profile, subjects, chapters, sessions, timeta
   for (let i = 1; i <= pages; i += 1) {
     doc.setPage(i);
     doc.setFont("helvetica", "normal").setFontSize(8).setTextColor(...MUTED);
-    doc.text(`StudyFlow · page ${i} of ${pages}`, pageW / 2, pageH - 20, { align: "center" });
+    doc.text(`Syllune · page ${i} of ${pages}`, pageW / 2, pageH - 20, { align: "center" });
   }
 
   return doc;
 }
 
-export function downloadStudyReport(input: ReportInput) {
+export function reportFileName(date = new Date()) {
+  return `Syllune_Study_Tracker_${date.toISOString().slice(0, 10)}.pdf`;
+}
+
+/**
+ * Web downloads the file; the Android app writes it to storage and opens the
+ * share/save sheet so the user can put it wherever they want.
+ */
+export async function downloadStudyReport(input: ReportInput) {
   const doc = buildStudyReport(input);
-  doc.save(`studyflow-report-${new Date().toISOString().slice(0, 10)}.pdf`);
+  return savePdfDocument(doc, reportFileName());
 }
