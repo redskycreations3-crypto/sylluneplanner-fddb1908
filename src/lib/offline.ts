@@ -30,7 +30,9 @@ function writeOutbox(ops: OutboxOp[]) {
   window.dispatchEvent(new CustomEvent(EVENT));
 }
 
-export function enqueue(op: Omit<OutboxOp, "id" | "at">) {
+type OutboxDraft = OutboxOp extends infer T ? (T extends OutboxOp ? Omit<T, "id" | "at"> : never) : never;
+
+export function enqueue(op: OutboxDraft) {
   const full = {
     ...op,
     id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
