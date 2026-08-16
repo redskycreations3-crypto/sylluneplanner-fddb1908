@@ -40,6 +40,7 @@ import {
   REVISION_STAGES,
   chapterProgress,
   colorOf,
+  nextSubjectColor,
   type Chapter,
   type Subject,
 } from "@/lib/study";
