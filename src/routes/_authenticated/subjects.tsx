@@ -2,27 +2,18 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/study/app-shell";
-import { EmptyState, IconPicker, ProgressRing, SubjectIcon } from "@/components/study/primitives";
+import { ProgressRing, SubjectIcon } from "@/components/study/primitives";
+import { ConfirmDialog } from "@/components/study/confirm-dialog";
+import { SubjectDialog, type SubjectDraft } from "@/components/study/subject-dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useChapters, useDeleteSubject, useSaveSubject, useSessions, useSubjects } from "@/lib/data";
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { useDeleteSubject, useSaveSubject, useSessions, useSubjects } from "@/lib/data";
-import {
-  SUBJECT_COLORS,
   colorOf,
   formatDuration,
   sessionSeconds,
   sessionsOn,
   type Subject,
 } from "@/lib/study";
-import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/subjects")({
   head: () => ({
@@ -36,16 +27,23 @@ export const Route = createFileRoute("/_authenticated/subjects")({
   component: SubjectsPage,
 });
 
-type Draft = Partial<Subject> & { id?: string };
-
 function SubjectsPage() {
   const { data: subjects = [] } = useSubjects();
   const { data: sessions = [] } = useSessions();
+  const { data: chapters = [] } = useChapters();
   const save = useSaveSubject();
   const remove = useDeleteSubject();
-  const [draft, setDraft] = useState<Draft | null>(null);
+  const [draft, setDraft] = useState<SubjectDraft | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<Subject | null>(null);
 
   const today = new Date();
+  const newDraft = (): SubjectDraft => ({
+    name: "",
+    icon: "book",
+    color: "lavender",
+    daily_goal_minutes: 60,
+    weekly_goal_minutes: 300,
+  });
 
   return (
     <AppShell
@@ -55,17 +53,24 @@ function SubjectsPage() {
           <Button
             size="sm"
             className="rounded-2xl"
-            onClick={() =>
-              setDraft({ name: "", icon: "book", color: "lavender", daily_goal_minutes: 60, weekly_goal_minutes: 300 })
-            }
+            onClick={() => setDraft(newDraft())}
           >
-            <Plus className="mr-1 h-4 w-4" /> Add
+            <Plus className="mr-1 h-4 w-4" /> Add Subject
           </Button>
         </header>
       }
     >
       {subjects.length === 0 ? (
-        <EmptyState title="No subjects yet" hint="Tap Add to create your first subject." />
+        <div className="card-soft mt-6 grid place-items-center gap-3 px-6 py-10 text-center">
+          <span className="text-4xl">📚</span>
+          <p className="font-display text-lg font-bold">Your syllabus is empty.</p>
+          <p className="text-sm text-muted-foreground">
+            Add your first subject to start tracking your progress.
+          </p>
+          <Button className="mt-1 rounded-2xl" onClick={() => setDraft(newDraft())}>
+            <Plus className="mr-1 h-4 w-4" /> Add Subject
+          </Button>
+        </div>
       ) : (
         <div className="grid grid-cols-2 gap-4">
           {subjects.map((subject) => {
@@ -74,17 +79,29 @@ function SubjectsPage() {
             const todayTotal = sessionSeconds(sessionsOn(all, today));
             const goal = (subject.daily_goal_minutes || 60) * 60;
             const percent = Math.min(100, Math.round((todayTotal / goal) * 100));
+            const subjectChapters = chapters.filter((c) => c.subject_id === subject.id);
+            const done = subjectChapters.filter((c) => c.status === "completed").length;
             return (
               <div key={subject.id} className="card-soft grid gap-3 p-4">
                 <div className="flex items-center gap-2">
                   <SubjectIcon subject={subject} size="sm" />
                   <p className="min-w-0 truncate text-sm font-bold">{subject.name}</p>
+                  <button
+                    className="ml-auto text-muted-foreground"
+                    aria-label={`Delete ${subject.name}`}
+                    onClick={() => setPendingDelete(subject)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
                 <div className="flex justify-center">
                   <ProgressRing percent={percent} size={86} stroke={8} color={colorOf(subject).hex}>
                     <span className="num text-xs font-bold">{formatDuration(total)}</span>
                   </ProgressRing>
                 </div>
+                <p className="num text-center text-[11px] text-muted-foreground">
+                  {done} / {subjectChapters.length} chapters
+                </p>
                 <p className="text-center text-[11px] text-muted-foreground">
                   Today {formatDuration(todayTotal)} / {formatDuration(goal)}
                 </p>
@@ -108,97 +125,33 @@ function SubjectsPage() {
         </div>
       )}
 
-      <Dialog open={draft !== null} onOpenChange={(open) => !open && setDraft(null)}>
-        <DialogContent className="max-w-sm rounded-3xl">
-          <DialogHeader>
-            <DialogTitle>{draft?.id ? "Edit subject" : "New subject"}</DialogTitle>
-          </DialogHeader>
-          {draft ? (
-            <div className="grid gap-3">
-              <div className="grid gap-1.5">
-                <Label>Name</Label>
-                <Input
-                  value={draft.name ?? ""}
-                  onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-                  placeholder="Physics"
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>Icon</Label>
-                <IconPicker value={draft.icon ?? "book"} onChange={(icon) => setDraft({ ...draft, icon })} />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>Color</Label>
-                <div className="flex flex-wrap gap-2">
-                  {Object.entries(SUBJECT_COLORS).map(([key, value]) => (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => setDraft({ ...draft, color: key })}
-                      className={cn(
-                        "h-8 w-8 rounded-full border-2",
-                        draft.color === key ? "border-foreground" : "border-transparent",
-                      )}
-                      style={{ backgroundColor: value.hex }}
-                      aria-label={key}
-                    />
-                  ))}
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="grid gap-1.5">
-                  <Label>Daily goal (min)</Label>
-                  <Input
-                    type="number"
-                    value={draft.daily_goal_minutes ?? 60}
-                    onChange={(e) => setDraft({ ...draft, daily_goal_minutes: Number(e.target.value) })}
-                  />
-                </div>
-                <div className="grid gap-1.5">
-                  <Label>Weekly goal (min)</Label>
-                  <Input
-                    type="number"
-                    value={draft.weekly_goal_minutes ?? 300}
-                    onChange={(e) => setDraft({ ...draft, weekly_goal_minutes: Number(e.target.value) })}
-                  />
-                </div>
-              </div>
-            </div>
-          ) : null}
-          <DialogFooter className="gap-2 sm:justify-between">
-            {draft?.id ? (
-              <Button
-                variant="ghost"
-                className="text-destructive"
-                onClick={() => {
-                  remove.mutate(draft.id!);
-                  setDraft(null);
-                }}
-              >
-                <Trash2 className="mr-1 h-4 w-4" /> Delete
-              </Button>
-            ) : (
-              <span />
-            )}
-            <Button
-              onClick={() => {
-                if (!draft) return;
-                save.mutate({
-                  ...(draft.id ? { id: draft.id } : {}),
-                  name: draft.name?.trim() || "New subject",
-                  icon: draft.icon ?? "book",
-                  color: draft.color ?? "lavender",
-                  daily_goal_minutes: draft.daily_goal_minutes ?? 60,
-                  weekly_goal_minutes: draft.weekly_goal_minutes ?? 300,
-                });
-                setDraft(null);
-              }}
-            >
-              Save
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <SubjectDialog
+        draft={draft}
+        onChange={setDraft}
+        onClose={() => setDraft(null)}
+        onSave={(next) => {
+          save.mutate({
+            ...(next.id ? { id: next.id } : {}),
+            name: next.name?.trim() || "New subject",
+            icon: next.icon ?? "book",
+            color: next.color ?? "lavender",
+            daily_goal_minutes: next.daily_goal_minutes ?? 60,
+            weekly_goal_minutes: next.weekly_goal_minutes ?? 300,
+          });
+          setDraft(null);
+        }}
+      />
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title={`Delete ${pendingDelete?.name ?? "subject"}?`}
+        description="This will permanently delete the subject, all its chapters, and related syllabus progress."
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={() => {
+          if (pendingDelete) remove.mutate(pendingDelete.id);
+          setPendingDelete(null);
+        }}
+      />
     </AppShell>
   );
 }
