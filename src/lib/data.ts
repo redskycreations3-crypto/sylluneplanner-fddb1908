@@ -329,6 +329,7 @@ export function useSaveSession() {
                 duration_seconds: input.duration_seconds ?? 0,
                 break_seconds: input.break_seconds ?? 0,
                 session_type: input.session_type ?? "stopwatch",
+                source: input.source ?? "timer",
                 note: input.note ?? null,
                 created_at: queued.at,
               },
