@@ -457,6 +457,9 @@ function FocusPage() {
           </div>
         ) : null}
       </div>
+      <div className="mt-4">
+        <SessionHistory />
+      </div>
       <ManualSessionDialog target={manual} onClose={() => setManual(null)} />
     </AppShell>
   );
