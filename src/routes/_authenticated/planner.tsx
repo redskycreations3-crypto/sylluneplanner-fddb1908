@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Check, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/study/app-shell";
 import { EmptyState, SubjectIcon } from "@/components/study/primitives";
@@ -15,8 +15,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useDeleteTimetableEntry, useSaveTimetableEntry, useSubjects, useTimetable } from "@/lib/data";
-import { DAYS, colorOf, formatTime, type TimetableEntry } from "@/lib/study";
+import {
+  useDeleteTimetableEntry,
+  usePlannerCompletions,
+  useSaveTimetableEntry,
+  useSubjects,
+  useTimetable,
+  useTogglePlannerCompletion,
+} from "@/lib/data";
+import { DAYS, colorOf, dayKey, formatTime, type TimetableEntry } from "@/lib/study";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/planner")({
@@ -55,6 +62,8 @@ const emptyDraft = (day: number): Draft => ({
 function PlannerPage() {
   const { data: entries = [] } = useTimetable();
   const { data: subjects = [] } = useSubjects();
+  const { data: completions = [] } = usePlannerCompletions();
+  const toggleDone = useTogglePlannerCompletion();
   const saveEntry = useSaveTimetableEntry();
   const deleteEntry = useDeleteTimetableEntry();
 
@@ -89,13 +98,43 @@ function PlannerPage() {
     toast.success("Timetable updated");
   }
 
+  /** Date of the given weekday inside the current week. */
+  function dateForDay(day: number) {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    date.setDate(date.getDate() + ((day - date.getDay() + 7) % 7));
+    return dayKey(date);
+  }
+
   function renderEntry(entry: TimetableEntry) {
     const subject = subjects.find((s) => s.id === entry.subject_id) ?? null;
+    const key = dateForDay(entry.day_of_week);
+    const completion = completions.find((c) => c.entry_id === entry.id && c.day === key);
+    const done = Boolean(completion);
     return (
       <div key={entry.id} className="card-soft flex items-center gap-3 p-3">
+        <button
+          aria-label={done ? "Mark as not done" : "Mark as done"}
+          onClick={() =>
+            toggleDone.mutate({
+              entryId: entry.id,
+              day: key,
+              done: !done,
+              ...(completion ? { existingId: completion.id } : {}),
+            })
+          }
+          className={cn(
+            "grid h-7 w-7 shrink-0 place-items-center rounded-full border-2",
+            done ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/30",
+          )}
+        >
+          {done ? <Check className="h-4 w-4" /> : null}
+        </button>
         <SubjectIcon subject={subject} size="sm" />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-bold">{entry.title}</p>
+          <p className={cn("truncate text-sm font-bold", done && "text-muted-foreground line-through")}>
+            {entry.title}
+          </p>
           <p className="num text-[11px] text-muted-foreground">
             {formatTime(entry.start_time)} – {formatTime(entry.end_time)}
             {entry.note ? ` · ${entry.note}` : ""}
