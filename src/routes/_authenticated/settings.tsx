@@ -26,6 +26,7 @@ import { clearResolutions, usePendingCount, useSyncResolutions } from "@/lib/off
 import { useTheme, type ThemeChoice } from "@/lib/theme";
 import { autoProgressSettings, type AutoProgressRule } from "@/lib/auto-progress";
 import { cn } from "@/lib/utils";
+import { pushWidgetOpacity, readWidgetOpacity } from "@/lib/widget";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
@@ -281,6 +282,8 @@ function SettingsPage() {
           </div>
         </section>
 
+        <WidgetCard />
+
         <section>
           <SectionTitle>Data</SectionTitle>
           <div className="card-soft grid gap-2 p-4">
@@ -443,5 +446,44 @@ function SyncActivityInner() {
         )}
       </div>
       </section>
+  );
+}
+
+/** Home-screen widget preview and background opacity control. */
+function WidgetCard() {
+  const [opacity, setOpacity] = useState(() => readWidgetOpacity());
+
+  return (
+    <section>
+      <SectionTitle>Home-screen widget</SectionTitle>
+      <div className="card-soft grid gap-3 p-4">
+        <p className="text-[11px] text-muted-foreground">
+          Add the “Syllune Planner” widget from your Android home-screen widget picker to see and tick off
+          the day’s study blocks without opening the app.
+        </p>
+        <div
+          className="rounded-3xl border border-border p-3"
+          style={{ background: `color-mix(in oklab, var(--card) ${Math.round(opacity * 100)}%, transparent)` }}
+        >
+          <p className="text-xs font-bold">Today</p>
+          <p className="mt-2 text-[11px] text-muted-foreground">Preview of the widget background</p>
+        </div>
+        <div className="grid gap-1">
+          <Label className="text-xs">Background opacity · {Math.round(opacity * 100)}%</Label>
+          <input
+            type="range"
+            min={10}
+            max={100}
+            value={Math.round(opacity * 100)}
+            onChange={(event) => {
+              const next = Number(event.target.value) / 100;
+              setOpacity(next);
+              void pushWidgetOpacity(next);
+            }}
+            className="w-full accent-[var(--primary)]"
+          />
+        </div>
+      </div>
+    </section>
   );
 }

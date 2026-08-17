@@ -33,6 +33,27 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
+
+        <receiver
+            android:name=".PlannerWidgetProvider"
+            android:label="@string/planner_widget_label"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.syllune.study.WIDGET_PREV" />
+                <action android:name="com.syllune.study.WIDGET_NEXT" />
+                <action android:name="com.syllune.study.WIDGET_TOGGLE" />
+                <action android:name="com.syllune.study.WIDGET_OPEN" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/planner_widget_info" />
+        </receiver>
+
+        <service
+            android:name=".PlannerWidgetService"
+            android:permission="android.permission.BIND_REMOTEVIEWS"
+            android:exported="false" />
     </application>
 
     <!-- Permissions -->
