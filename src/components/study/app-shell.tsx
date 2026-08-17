@@ -6,6 +6,7 @@ import { formatClock } from "@/lib/study";
 import { useOnline, usePendingCount } from "@/lib/offline";
 import { NotificationPermissionDialog } from "@/components/study/notification-permission-dialog";
 import { useNotificationScheduler } from "@/lib/notification-sync";
+import { useWidgetSync } from "@/lib/widget-sync";
 
 const NAV = [
   { to: "/", label: "Home", icon: Home },
@@ -30,6 +31,7 @@ export function AppShell({
   const online = useOnline();
   const pending = usePendingCount();
   useNotificationScheduler();
+  useWidgetSync();
 
   const syncLabel = !online ? "Offline" : pending > 0 ? "Syncing" : "Synced";
   const syncDot = !online ? "bg-muted-foreground/50" : pending > 0 ? "bg-amber-400" : "bg-emerald-400";
