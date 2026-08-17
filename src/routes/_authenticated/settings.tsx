@@ -266,11 +266,6 @@ function SettingsPage() {
 
         <section>
           <SectionTitle>Theme</SectionTitle>
-        </section>
-
-        <WidgetCard />
-
-        <section>
           <div className="card-soft flex gap-2 p-4">
             {(["light", "dark", "system"] as ThemeChoice[]).map((choice) => (
               <button
@@ -286,6 +281,8 @@ function SettingsPage() {
             ))}
           </div>
         </section>
+
+        <WidgetCard />
 
         <section>
           <SectionTitle>Data</SectionTitle>
