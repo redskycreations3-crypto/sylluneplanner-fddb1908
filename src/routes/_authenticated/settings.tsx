@@ -26,6 +26,7 @@ import { clearResolutions, usePendingCount, useSyncResolutions } from "@/lib/off
 import { useTheme, type ThemeChoice } from "@/lib/theme";
 import { autoProgressSettings, type AutoProgressRule } from "@/lib/auto-progress";
 import { cn } from "@/lib/utils";
+import { pushWidgetOpacity, readWidgetOpacity } from "@/lib/widget";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
@@ -265,6 +266,11 @@ function SettingsPage() {
 
         <section>
           <SectionTitle>Theme</SectionTitle>
+        </section>
+
+        <WidgetCard />
+
+        <section>
           <div className="card-soft flex gap-2 p-4">
             {(["light", "dark", "system"] as ThemeChoice[]).map((choice) => (
               <button
