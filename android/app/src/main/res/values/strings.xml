@@ -4,4 +4,6 @@
     <string name="title_activity_main">Syllune</string>
     <string name="package_name">com.syllune.study</string>
     <string name="custom_url_scheme">com.syllune.study</string>
+    <string name="planner_widget_description">Today\'s planner tasks from Syllune</string>
+    <string name="planner_widget_label">Syllune Planner</string>
 </resources>
