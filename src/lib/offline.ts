@@ -19,6 +19,7 @@ export type OutboxTable =
   | "subjects"
   | "timetable_entries"
   | "daily_goals"
+  | "planner_completions"
   | "profiles";
 
 const KEY = "studyflow.outbox.v1";
