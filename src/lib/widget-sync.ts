@@ -73,7 +73,7 @@ export function useWidgetSync() {
           entryId: item.entryId,
           day: item.day,
           done: item.done,
-          existingId: existing?.id,
+          ...(existing ? { existingId: existing.id } : {}),
         });
       }
     };
