@@ -186,6 +186,76 @@ export function useDailyGoals() {
   });
 }
 
+export type PlannerCompletion = {
+  id: string;
+  user_id: string;
+  entry_id: string;
+  day: string;
+  created_at: string;
+};
+
+export function usePlannerCompletions() {
+  return useQuery({
+    queryKey: ["planner-completions"],
+    queryFn: async (): Promise<PlannerCompletion[]> => {
+      const { data, error } = await supabase
+        .from("planner_completions")
+        .select("*")
+        .order("day", { ascending: false })
+        .limit(1000);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+/** Marks/unmarks a planner block as done for one calendar day. Offline-safe. */
+export function useTogglePlannerCompletion() {
+  const invalidate = useInvalidate(["planner-completions"]);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { entryId: string; day: string; done: boolean; existingId?: string }) => {
+      const userId = isOnline() ? await currentUserId() : await offlineUserId();
+      if (!userId) throw new Error("Not signed in");
+      if (input.done) {
+        const payload = { user_id: userId, entry_id: input.entryId, day: input.day };
+        await offlineFirst(
+          async () => {
+            const { error } = await supabase.from("planner_completions").insert(payload);
+            if (error) throw error;
+          },
+          () => {
+            const queued = enqueue({ kind: "insert", table: "planner_completions", payload });
+            qc.setQueryData<PlannerCompletion[]>(["planner-completions"], (rows) => [
+              ...(rows ?? []),
+              { ...payload, id: queued.id, created_at: queued.at } as PlannerCompletion,
+            ]);
+          },
+        );
+      } else {
+        const id = input.existingId;
+        await offlineFirst(
+          async () => {
+            const { error } = await supabase
+              .from("planner_completions")
+              .delete()
+              .eq("entry_id", input.entryId)
+              .eq("day", input.day);
+            if (error) throw error;
+          },
+          () => {
+            if (id && !id.startsWith("local-")) enqueueDelete("planner_completions", id);
+            qc.setQueryData<PlannerCompletion[]>(["planner-completions"], (rows) =>
+              (rows ?? []).filter((row) => !(row.entry_id === input.entryId && row.day === input.day)),
+            );
+          },
+        );
+      }
+    },
+    onSuccess: invalidate,
+  });
+}
+
 /**
  * Stamps today's goal into history so changing the goal later never rewrites
  * the score of a day that is already finished. Works offline via the outbox.
